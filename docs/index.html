@@ -8,6 +8,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0d1117;--sf:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;--gn:#3fb950;--rd:#f85149}
+[data-theme=light]{--bg:#f0f3f7;--sf:#ffffff;--bd:#d0d7de;--tx:#1f2328;--mu:#57606a;--ac:#0969da;--gn:#1a7f37;--rd:#cf222e}
 body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 /* Splash */
 #splash{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column}
@@ -76,6 +77,26 @@ header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;d
 .ind-toggle::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s}
 .ind-toggle.on::after{left:16px}
 .sep{width:1px;height:16px;background:var(--bd);margin:0 3px;flex-shrink:0}
+/* Chart type + zoom buttons */
+.ct-btn{padding:2px 7px;border-radius:3px;border:1px solid var(--bd);background:transparent;color:var(--mu);cursor:pointer;font-size:12px;flex-shrink:0}
+.ct-btn.active{background:#1f6feb22;border-color:var(--ac);color:var(--ac)}
+.chart-float-btns{position:absolute;top:6px;right:8px;z-index:10;display:flex;gap:4px}
+.cfbtn{width:26px;height:26px;border-radius:5px;border:1px solid var(--bd);background:var(--sf);color:var(--mu);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.cfbtn:hover{border-color:var(--ac);color:var(--ac)}
+/* Fullscreen */
+#chart-area.fullscreen{position:fixed;inset:0;z-index:300;width:100vw;height:100dvh}
+/* Share modal */
+#share-modal{position:fixed;inset:0;z-index:400;display:none;background:#000c;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#share-canvas{border-radius:12px;max-width:96vw;box-shadow:0 20px 60px #00000080}
+.share-btns{display:flex;gap:10px}
+.share-btn{padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600}
+.share-dl{background:#1f6feb;color:#fff}
+.share-native{background:#3fb950;color:#fff}
+.share-close{background:var(--bd);color:var(--mu)}
+/* Equity chart */
+#equity-wrap{padding:8px 0;flex-shrink:0}
+#equity-canvas{width:100%;height:80px;border-radius:6px;background:var(--bg)}
+.equity-stats{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);padding:2px 2px 4px}
 /* Main layout */
 .layout{display:flex;flex:1;overflow:hidden}
 /* Draw toolbar */
@@ -215,6 +236,8 @@ input:focus,select:focus{border-color:var(--ac)}
     <span class="live-price" id="livePrice">--</span><br>
     <span class="sub-info" id="chgInfo">加载中...</span>
   </div>
+  <button id="themeBtn" onclick="toggleTheme()" title="切换主题" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px">🌙</button>
+  <button onclick="openShareModal()" title="分享晒单" style="background:none;border:1px solid var(--bd);border-radius:5px;cursor:pointer;font-size:11px;padding:3px 8px;color:var(--mu)">📸 晒单</button>
 </header>
 
 <div class="ctrl-bar" id="ctrlBar" style="display:none"></div>
@@ -241,6 +264,13 @@ input:focus,select:focus{border-color:var(--ac)}
       <div id="main-chart"></div>
       <canvas id="draw-canvas"></canvas>
       <div class="ov" id="ov">连接中...</div>
+      <!-- Zoom + Fullscreen buttons -->
+      <div class="chart-float-btns">
+        <button class="cfbtn" onclick="zoomIn()" title="放大">+</button>
+        <button class="cfbtn" onclick="zoomOut()" title="缩小">−</button>
+        <button class="cfbtn" onclick="zoomFit()" title="适应">⊞</button>
+        <button class="cfbtn" id="fsBtn" onclick="toggleFullscreen()" title="全屏">⛶</button>
+      </div>
       <!-- OHLCV hover bar -->
       <div id="ohlcv-bar">
         <div class="oi-group"><span class="oi-lbl" id="oi-time"></span></div>
@@ -296,6 +326,10 @@ input:focus,select:focus{border-color:var(--ac)}
       <div id="trades-list"><div class="empty">等待成交数据...</div></div>
     </div>
     <div class="tab-body" id="pane-account" style="display:none">
+      <div id="equity-wrap">
+        <div class="equity-stats"><span>资金曲线</span><span id="equity-range-lbl"></span></div>
+        <canvas id="equity-canvas" height="80"></canvas>
+      </div>
       <div class="stat-grid" id="statGrid"></div>
       <div class="sec-t">持仓</div><div id="posDiv"></div>
       <div class="sec-t">挂单</div><div id="ordDiv"></div>
@@ -303,6 +337,16 @@ input:focus,select:focus{border-color:var(--ac)}
     <div class="tab-body" id="pane-history" style="display:none">
       <div id="histDiv"></div>
     </div>
+  </div>
+</div>
+
+<!-- Share/Screenshot Modal -->
+<div id="share-modal" onclick="if(event.target===this)closeShareModal()">
+  <canvas id="share-canvas"></canvas>
+  <div class="share-btns">
+    <button class="share-btn share-dl" onclick="downloadCard()">⬇ 保存图片</button>
+    <button class="share-btn share-native" id="nativeShareBtn" onclick="nativeShare()" style="display:none">📤 分享</button>
+    <button class="share-btn share-close" onclick="closeShareModal()">关闭</button>
   </div>
 </div>
 
@@ -522,7 +566,7 @@ function initCharts(){
     timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#30363d'},
     rightPriceScale:{borderColor:'#30363d'},
   });
-  candleSeries=mainChart.addCandlestickSeries({upColor:'#3fb950',downColor:'#f85149',borderUpColor:'#3fb950',borderDownColor:'#f85149',wickUpColor:'#3fb950',wickDownColor:'#f85149'});
+  createMainSeries();
   subChart=LightweightCharts.createChart(document.getElementById('sub-chart'),{
     layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
     grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
@@ -737,7 +781,7 @@ function connectWS(){
     }
     if(parsed.type==='kline'&&parsed.sym===curSym){
       const candle={time:parsed.time,open:parsed.open,high:parsed.high,low:parsed.low,close:parsed.close,volume:parsed.volume};
-      candleSeries.update(candle);
+      updateSeriesCandle(candle);
       if(chartData.length&&chartData[chartData.length-1].time===candle.time) chartData[chartData.length-1]=candle;
       else if(candle.time>(chartData[chartData.length-1]||{}).time) chartData.push(candle);
       checkOrders(parsed.sym,parsed.close,parsed.high,parsed.low);
@@ -828,11 +872,22 @@ async function setExchange(id){
   await loadKlines(curSym,curTfMin);
   connectWS();
 }
+const CHART_TYPES=[
+  {id:'candle', icon:'🕯'},
+  {id:'hollow', icon:'◻'},
+  {id:'bar',    icon:'▮'},
+  {id:'line',   icon:'╱'},
+  {id:'area',   icon:'◬'},
+];
+let chartType='candle';
+
 function buildCtrlBar(){
   const active=[...activeIndicators];
   const badge=active.length?` <span style="background:#1f6feb;color:#fff;border-radius:8px;padding:0 5px;font-size:10px">${active.length}</span>`:'';
   document.getElementById('ctrlBar').innerHTML=
     TIMEFRAMES.map(tf=>`<button class="tf-btn${tf.m===curTfMin?' active':''}" onclick="switchTf(${tf.m})">${tf.l}</button>`).join('')+
+    '<div class="sep"></div>'+
+    CHART_TYPES.map(ct=>`<button class="ct-btn${ct.id===chartType?' active':''}" onclick="switchChartType('${ct.id}')" title="${ct.id}">${ct.icon}</button>`).join('')+
     '<div class="sep"></div>'+
     `<button class="ind-btn${active.length?' active':''}" onclick="openIndModal()" style="display:flex;align-items:center;gap:3px">📊 指标${badge}</button>`;
 }
@@ -933,6 +988,7 @@ function placeOrder(side){
   saveAccount(acc);toast(`${side==='buy'?'买单':'卖单'} ✓`);document.getElementById('oSize').value='';
 }
 function renderAccount(){
+  drawEquityCurve();
   const acc=getAccount();let pnl=0;
   for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
   document.getElementById('statGrid').innerHTML=`<div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div><div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div><div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div><div class="stat"><div class="lbl">初始资金</div><div class="val">$100,000</div></div>`;
@@ -1339,6 +1395,252 @@ async function startWith(exId) {
   splash.style.transition = 'opacity .5s';
   splash.style.opacity = '0';
   setTimeout(() => { splash.style.display = 'none'; }, 500);
+}
+
+// ════════════════════════════════════════════════════════
+// CHART TYPE SWITCHING
+// ════════════════════════════════════════════════════════
+function createMainSeries(){
+  const u='#3fb950',d='#f85149';
+  if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'transparent',downColor:'transparent',borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  else if(chartType==='bar') candleSeries=mainChart.addBarSeries({upColor:u,downColor:d});
+  else if(chartType==='line') candleSeries=mainChart.addLineSeries({color:'#58a6ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+  else if(chartType==='area') candleSeries=mainChart.addAreaSeries({lineColor:'#58a6ff',topColor:'#58a6ff55',bottomColor:'#58a6ff00',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+}
+function setSeriesData(data){
+  if(!candleSeries||!data.length) return;
+  if(chartType==='line'||chartType==='area') candleSeries.setData(data.map(d=>({time:d.time,value:d.close})));
+  else candleSeries.setData(data);
+}
+function updateSeriesCandle(c){
+  if(!candleSeries) return;
+  if(chartType==='line'||chartType==='area') candleSeries.update({time:c.time,value:c.close});
+  else candleSeries.update(c);
+}
+function switchChartType(type){
+  chartType=type;
+  try{mainChart.removeSeries(candleSeries);}catch{}
+  createMainSeries();
+  setSeriesData(chartData);
+  renderIndicators(chartData);
+  buildCtrlBar();
+}
+
+// ════════════════════════════════════════════════════════
+// ZOOM + FULLSCREEN
+// ════════════════════════════════════════════════════════
+function zoomIn(){const r=mainChart.timeScale().getVisibleLogicalRange();if(!r)return;const m=(r.from+r.to)/2,h=(r.to-r.from)*0.35;mainChart.timeScale().setVisibleLogicalRange({from:m-h,to:m+h});}
+function zoomOut(){const r=mainChart.timeScale().getVisibleLogicalRange();if(!r)return;const m=(r.from+r.to)/2,h=(r.to-r.from)*0.7;mainChart.timeScale().setVisibleLogicalRange({from:m-h,to:m+h});}
+function zoomFit(){mainChart.timeScale().fitContent();}
+
+let _isFullscreen=false;
+function toggleFullscreen(){
+  const ca=document.getElementById('chart-area');
+  _isFullscreen=!_isFullscreen;
+  ca.classList.toggle('fullscreen',_isFullscreen);
+  document.getElementById('fsBtn').textContent=_isFullscreen?'✕':'⛶';
+  setTimeout(()=>{
+    const mw=document.getElementById('main-wrap');
+    mainChart.resize(mw.clientWidth,mw.clientHeight);
+    const sw=document.getElementById('sub-wrap');
+    if(sw.style.display!=='none') subChart.resize(sw.clientWidth,sw.clientHeight);
+    resizeCanvas();
+  },50);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&_isFullscreen)toggleFullscreen();});
+
+// ════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ════════════════════════════════════════════════════════
+let _isDark=true;
+function toggleTheme(){
+  _isDark=!_isDark;
+  document.documentElement.setAttribute('data-theme',_isDark?'dark':'light');
+  document.getElementById('themeBtn').textContent=_isDark?'🌙':'☀️';
+  localStorage.setItem('theme',_isDark?'dark':'light');
+  const bg=_isDark?'#0d1117':'#f0f3f7',tx=_isDark?'#8b949e':'#57606a';
+  const opts={layout:{background:{color:bg},textColor:tx},grid:{vertLines:{color:_isDark?'#21262d':'#e1e4e8'},horzLines:{color:_isDark?'#21262d':'#e1e4e8'}}};
+  mainChart.applyOptions(opts); subChart.applyOptions(opts);
+}
+// Restore saved theme
+(function(){const t=localStorage.getItem('theme');if(t==='light'){_isDark=false;document.documentElement.setAttribute('data-theme','light');document.getElementById('themeBtn').textContent='☀️';}})();
+
+// ════════════════════════════════════════════════════════
+// EQUITY CURVE
+// ════════════════════════════════════════════════════════
+let equityHistory=JSON.parse(localStorage.getItem('equityHistory')||'[]');
+function recordEquity(){
+  const acc=getAccount();let pnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
+  const equity=acc.balance+pnl, now=Math.floor(Date.now()/1000);
+  if(!equityHistory.length||now-equityHistory[equityHistory.length-1].time>30){
+    equityHistory.push({time:now,value:equity});
+    if(equityHistory.length>2000) equityHistory=equityHistory.slice(-2000);
+    localStorage.setItem('equityHistory',JSON.stringify(equityHistory));
+    if(activeTab==='account') drawEquityCurve();
+  }
+}
+setInterval(recordEquity,5000);
+
+function drawEquityCurve(){
+  const el=document.getElementById('equity-canvas');if(!el||equityHistory.length<2) return;
+  const w=el.offsetWidth||240, h=el.height||80;
+  el.width=w; const c=el.getContext('2d');c.clearRect(0,0,w,h);
+  const vals=equityHistory.map(e=>e.value);
+  const mn=Math.min(...vals)*0.999, mx=Math.max(...vals)*1.001, rng=mx-mn||1;
+  const n=vals.length;
+  const px=(i,v)=>[i/(n-1)*(w-2)+1, h-2-(v-mn)/rng*(h-4)];
+  const up=vals[vals.length-1]>=vals[0];
+  const col=up?'#3fb950':'#f85149';
+  // Fill
+  c.beginPath(); c.moveTo(1,h-2);
+  vals.forEach((v,i)=>{const[x,y]=px(i,v);c.lineTo(x,y);});
+  c.lineTo(w-1,h-2); c.closePath();
+  const g=c.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,col+'55'); g.addColorStop(1,col+'00');
+  c.fillStyle=g; c.fill();
+  // Line
+  c.beginPath(); vals.forEach((v,i)=>{const[x,y]=px(i,v);i===0?c.moveTo(x,y):c.lineTo(x,y);});
+  c.strokeStyle=col; c.lineWidth=1.5; c.stroke();
+  // Labels
+  const first=equityHistory[0],last=equityHistory[equityHistory.length-1];
+  const chg=((last.value-first.value)/first.value*100);
+  document.getElementById('equity-range-lbl').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
+  document.getElementById('equity-range-lbl').style.color=up?'var(--gn)':'var(--rd)';
+}
+
+// ════════════════════════════════════════════════════════
+// SHARE / SCREENSHOT CARD
+// ════════════════════════════════════════════════════════
+function openShareModal(){
+  document.getElementById('share-modal').style.display='flex';
+  if(navigator.share) document.getElementById('nativeShareBtn').style.display='';
+  generateShareCard();
+}
+function closeShareModal(){document.getElementById('share-modal').style.display='none';}
+
+function generateShareCard(){
+  const W=1200,H=630;
+  const el=document.getElementById('share-canvas');
+  el.width=W; el.height=H;
+  const c=el.getContext('2d');
+
+  // Background gradient
+  const isDark=_isDark;
+  const bg1=isDark?'#0d1117':'#f8faff', bg2=isDark?'#111827':'#e8f0fe';
+  const grad=c.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,bg1); grad.addColorStop(1,bg2);
+  c.fillStyle=grad; c.fillRect(0,0,W,H);
+
+  // Subtle grid lines
+  c.strokeStyle=isDark?'#ffffff08':'#0000000a'; c.lineWidth=1;
+  for(let x=0;x<W;x+=60){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke();}
+  for(let y=0;y<H;y+=60){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
+
+  // Top bar
+  const accentCol=isDark?'#58a6ff':'#0969da';
+  c.fillStyle=accentCol;c.fillRect(0,0,W,4);
+
+  // Logo + exchange
+  c.fillStyle=isDark?'#e6edf3':'#1f2328';
+  c.font='bold 28px Segoe UI';c.fillText('📈 模拟交易',40,55);
+  const exObj=EXCHANGES[curExchange];
+  c.fillStyle=isDark?'#8b949e':'#57606a';
+  c.font='16px Segoe UI';c.fillText(exObj.name.toUpperCase(),44,78);
+
+  // Symbol + price
+  const p=prices[curSym]||0, chg=changes[curSym]||0;
+  const isUp=chg>=0;
+  c.fillStyle=isDark?'#e6edf3':'#1f2328';
+  c.font='bold 22px Segoe UI';
+  c.fillText(exObj.fmtDisplay(curSym),40,140);
+  c.font='bold 56px Segoe UI';
+  c.fillStyle=isUp?'#3fb950':'#f85149';
+  c.fillText('$'+(p.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})),40,210);
+  c.font='bold 22px Segoe UI';
+  c.fillStyle=isUp?'#3fb950':'#f85149';
+  c.fillText((isUp?'▲ +':'▼ ')+chg.toFixed(2)+'%  24h',40,245);
+
+  // Mini candlestick chart (right side)
+  if(chartData.length>5){
+    const cx=350,cy=100,cw=W-cx-40,ch=400;
+    const slice=chartData.slice(-Math.min(80,chartData.length));
+    const hi=Math.max(...slice.map(d=>d.high)), lo=Math.min(...slice.map(d=>d.low)), rng=hi-lo||1;
+    const barW=cw/slice.length;
+    slice.forEach((d,i)=>{
+      const x=cx+i*barW+barW*0.1, bw=barW*0.8;
+      const oY=cy+ch-(d.open-lo)/rng*ch, cY=cy+ch-(d.close-lo)/rng*ch;
+      const hY=cy+ch-(d.high-lo)/rng*ch, lY=cy+ch-(d.low-lo)/rng*ch;
+      const up=d.close>=d.open;
+      c.strokeStyle=up?'#3fb950':'#f85149'; c.lineWidth=1;
+      c.beginPath();c.moveTo(x+bw/2,hY);c.lineTo(x+bw/2,lY);c.stroke();
+      c.fillStyle=up?'#3fb950':'#f85149';
+      const bodyY=Math.min(oY,cY), bodyH=Math.max(Math.abs(cY-oY),1);
+      c.fillRect(x,bodyY,bw,bodyH);
+    });
+    // Chart border
+    c.strokeStyle=isDark?'#30363d':'#d0d7de'; c.lineWidth=1;
+    c.strokeRect(cx-1,cy-1,cw+2,ch+2);
+  }
+
+  // Equity + PnL (bottom left)
+  const acc=getAccount();let pnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const pp=prices[sym]||0;pnl+=pos.side==='long'?(pp-pos.entryPrice)*pos.size:(pos.entryPrice-pp)*pos.size;}
+  const equity=acc.balance+pnl;
+  const totalPnl=equity-100000, pnlPct=(totalPnl/100000*100);
+  c.fillStyle=isDark?'#8b949e':'#57606a'; c.font='14px Segoe UI';c.fillText('账户净值',40,310);
+  c.fillStyle=isDark?'#e6edf3':'#1f2328'; c.font='bold 32px Segoe UI';
+  c.fillText('$'+equity.toFixed(2),40,350);
+  c.font='bold 18px Segoe UI';
+  c.fillStyle=totalPnl>=0?'#3fb950':'#f85149';
+  c.fillText((totalPnl>=0?'▲ +':'▼ ')+'$'+Math.abs(totalPnl).toFixed(2)+' ('+pnlPct.toFixed(2)+'%)',40,382);
+
+  // Mini equity curve
+  if(equityHistory.length>2){
+    const ex=40,ey=410,ew=260,eh=60;
+    const vals=equityHistory.map(e=>e.value);
+    const mn=Math.min(...vals)*0.999,mx=Math.max(...vals)*1.001,rng=mx-mn||1;
+    const up2=vals[vals.length-1]>=vals[0];
+    c.fillStyle=isDark?'#161b2255':'#ffffff55';c.fillRect(ex,ey,ew,eh);
+    const pts=vals.map((v,i)=>[ex+i/(vals.length-1)*ew, ey+eh-(v-mn)/rng*eh]);
+    c.beginPath();c.moveTo(ex,ey+eh);
+    pts.forEach(([px2,py])=>c.lineTo(px2,py));
+    c.lineTo(ex+ew,ey+eh);c.closePath();
+    const g2=c.createLinearGradient(0,ey,0,ey+eh);
+    g2.addColorStop(0,(up2?'#3fb950':'#f85149')+'55');g2.addColorStop(1,(up2?'#3fb950':'#f85149')+'00');
+    c.fillStyle=g2;c.fill();
+    c.beginPath();pts.forEach(([px2,py],i)=>i===0?c.moveTo(px2,py):c.lineTo(px2,py));
+    c.strokeStyle=up2?'#3fb950':'#f85149';c.lineWidth=2;c.stroke();
+    c.fillStyle=isDark?'#8b949e':'#57606a';c.font='11px Segoe UI';c.fillText('资金曲线',ex+2,ey-4);
+  }
+
+  // Time
+  c.fillStyle=isDark?'#484f58':'#8c959f'; c.font='13px Segoe UI';
+  c.fillText(new Date().toLocaleString('zh'),40,H-20);
+
+  // URL watermark
+  c.fillStyle=accentCol; c.font='13px Segoe UI';
+  const url='jiahui08301996-source.github.io/crypto-sim-trading';
+  c.fillText(url, W-c.measureText(url).width-30, H-20);
+
+  // Branding strip
+  c.fillStyle=accentCol+'33'; c.fillRect(0,H-40,W,40);
+  c.fillStyle=accentCol; c.font='bold 13px Segoe UI';
+  c.fillText('🚀 CryptoSim — 用真实行情，练习真实交易技术',W/2-180,H-14);
+}
+
+function downloadCard(){
+  const el=document.getElementById('share-canvas');
+  const a=document.createElement('a');
+  a.download=`CryptoSim_${curSym}_${Date.now()}.png`;
+  a.href=el.toDataURL('image/png');a.click();
+}
+async function nativeShare(){
+  const el=document.getElementById('share-canvas');
+  el.toBlob(async blob=>{
+    try{await navigator.share({files:[new File([blob],'trade.png',{type:'image/png'})],title:'模拟交易截图'});}catch{}
+  },'image/png');
 }
 
 // ════════════════════════════════════════════════════════
