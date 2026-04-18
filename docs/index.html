@@ -1117,15 +1117,38 @@ async function _fetchRange(ex,sym,iv,tfMin,startMs,endMs){
   return all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
 }
 
-// Wrap loadKlines: high-freq→windowed, others→cache
+// ────────────────────────────────────────────────────────
+// IndexedDB persistent cache (survives page refresh)
+// ────────────────────────────────────────────────────────
+const IDB_NAME='CryptoSimCache', IDB_STORE='klines';
+let _idb=null;
+async function idbOpen(){
+  if(_idb) return _idb;
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=e=>{if(!e.target.result.objectStoreNames.contains(IDB_STORE))e.target.result.createObjectStore(IDB_STORE,{keyPath:'k'});};
+    r.onsuccess=e=>{_idb=e.target.result;res(_idb);};
+    r.onerror=e=>rej(e);
+  });
+}
+async function idbGet(k){
+  try{const d=await idbOpen();return new Promise(res=>{const tx=d.transaction(IDB_STORE,'readonly'),req=tx.objectStore(IDB_STORE).get(k);req.onsuccess=()=>res(req.result?.v||null);req.onerror=()=>res(null);});}catch{return null;}
+}
+async function idbSet(k,v){
+  try{const d=await idbOpen();return new Promise(res=>{const tx=d.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put({k,v,ts:Date.now()});tx.oncomplete=res;tx.onerror=res;});}catch{}
+}
+
+// Wrap loadKlines: high-freq→windowed, others→IndexedDB cache + delta fetch
 const _origLoad = loadKlines;
 loadKlines = async function(sym, tfMin) {
   if(isHighFreq(tfMin)){
     await loadKlinesWindowed(sym,tfMin);
     return;
   }
-  lazyLoadSym=null; lazyLoadTfMin=null; // disarm lazy loader
+  lazyLoadSym=null; lazyLoadTfMin=null;
   const key=cacheKey(curExchange,sym,tfMin);
+
+  // 1) Check in-memory cache first (already loaded this session)
   if(klineCache[key]){
     chartData=klineCache[key];
     candleSeries.setData(chartData);
@@ -1134,8 +1157,56 @@ loadKlines = async function(sym, tfMin) {
     renderIndicators(chartData);
     return;
   }
+
+  // 2) Check IndexedDB (device storage)
+  const cached=await idbGet(key);
+  const ov=document.getElementById('ov');
+
+  if(cached&&cached.length>0){
+    // Show cached data immediately — feels instant
+    chartData=cached;
+    candleSeries.setData(chartData);
+    mainChart.timeScale().fitContent();
+    if(chartData.length){prices[sym]=chartData[chartData.length-1].close;updatePriceDisplay(sym,prices[sym],changes[sym]||0);}
+    renderIndicators(chartData);
+
+    // Fetch only the delta (new candles since last cached time)
+    ov.textContent=`📦 缓存已加载 ${cached.length}根，正在同步最新数据...`;
+    ov.style.display='flex';
+    const ex=EXCHANGES[curExchange], iv=ex.tfMap[tfMin];
+    const startDelta=chartData[chartData.length-1].time*1000; // from last cached
+    const delta=await _fetchRange(ex,sym,iv,tfMin,startDelta,Date.now());
+    if(delta.length){
+      const seen=new Set(chartData.map(c=>c.time));
+      // Replace last candle if same time (was in-progress when cached)
+      const fresh=delta.filter(c=>!seen.has(c.time)||c.time===chartData[chartData.length-1].time);
+      if(fresh.length){
+        // Remove last if overlapping
+        if(fresh[0].time===chartData[chartData.length-1].time) chartData.pop();
+        chartData.push(...fresh);
+        chartData.sort((a,b)=>a.time-b.time);
+        candleSeries.setData(chartData);
+        renderIndicators(chartData);
+      }
+    }
+    // Save updated data back to IndexedDB (background)
+    idbSet(key,[...chartData]);
+    klineCache[key]=[...chartData];
+
+    ov.textContent=`✓ ${chartData.length}根  · 已同步`;
+    setTimeout(()=>ov.style.display='none',700);
+    return;
+  }
+
+  // 3) No cache at all → full load, then save
+  ov.textContent='首次加载，正在拉取完整历史...';ov.style.display='flex';
   await _origLoad(sym,tfMin);
-  if(chartData.length) klineCache[key]=[...chartData];
+  if(chartData.length){
+    klineCache[key]=[...chartData];
+    idbSet(key,[...chartData]); // save for next time
+    ov.textContent=`✓ ${chartData.length}根已缓存到本地`;
+    setTimeout(()=>ov.style.display='none',800);
+  }
 };
 
 // Preload: top symbols at 1H + 1D for selected exchange
@@ -1148,9 +1219,25 @@ async function preloadAll(exId, onProgress) {
   const jobs = [];
   for (const sym of syms) for (const tfMin of PRELOAD_TFS) jobs.push({sym, tfMin});
 
-  for (let i = 0; i < jobs.length; i++) {
-    const {sym, tfMin} = jobs[i];
-    onProgress(i, jobs.length, sym, tfMin);
+  // Pre-check IndexedDB: skip jobs already cached
+  onProgress(0, jobs.length, '检查本地缓存...', 0);
+  for (const job of jobs) {
+    const key = cacheKey(exId, job.sym, job.tfMin);
+    const cached = await idbGet(key);
+    if (cached && cached.length > 0) {
+      klineCache[key] = cached; // load into memory
+      job.skip = true;
+    }
+  }
+  const needFetch = jobs.filter(j => !j.skip);
+  if (needFetch.length === 0) {
+    onProgress(jobs.length, jobs.length, '', 0);
+    return;
+  }
+
+  for (let i = 0; i < needFetch.length; i++) {
+    const {sym, tfMin} = needFetch[i];
+    onProgress(jobs.filter(j=>j.skip).length + i, jobs.length, sym, tfMin);
     const key = cacheKey(exId, sym, tfMin);
     if (!klineCache[key]) {
       try {
@@ -1172,6 +1259,7 @@ async function preloadAll(exId, onProgress) {
         const seen = new Set();
         const data = all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
         klineCache[key] = data;
+        idbSet(key, data); // persist to device
         curExchange = savedEx;
       } catch(e) { console.warn('preload failed', sym, tfMin, e); }
     }
@@ -1181,18 +1269,33 @@ async function preloadAll(exId, onProgress) {
   onProgress(jobs.length, jobs.length, '', 0);
 }
 
+// Splash title shows cache status
+async function checkCacheStatus(exId) {
+  const ex = EXCHANGES[exId];
+  const syms = Object.values(ex.categories).flat().slice(0, PRELOAD_COUNT);
+  let hits = 0;
+  for (const sym of syms) for (const tf of PRELOAD_TFS) {
+    const d = await idbGet(cacheKey(exId, sym, tf));
+    if (d && d.length) hits++;
+  }
+  return {hits, total: syms.length * PRELOAD_TFS.length};
+}
+
 // ════════════════════════════════════════════════════════
 // ENTRY POINT — user picks exchange on splash
 // ════════════════════════════════════════════════════════
 async function startWith(exId) {
-  // hide exchange buttons, show loading bar
   document.querySelector('.splash-ex-row').style.display = 'none';
   document.querySelector('.splash-sub').style.display = 'none';
   const loadDiv = document.getElementById('splash-loading');
   loadDiv.style.display = 'flex';
 
   const ex = EXCHANGES[exId];
-  document.getElementById('splashTitle').textContent = `正在加载 ${ex.name} 行情数据...`;
+  const {hits, total} = await checkCacheStatus(exId);
+  const fromCache = hits > 0;
+  document.getElementById('splashTitle').textContent = fromCache
+    ? `📦 从本地缓存加载 ${ex.name}... (${hits}/${total} 命中)`
+    : `正在首次加载 ${ex.name} 行情数据...`;
 
   // preload with progress
   await preloadAll(exId, (done, total, sym, tfMin) => {
