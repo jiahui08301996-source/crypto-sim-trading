@@ -778,7 +778,6 @@ const EXCHANGES = {
 
 const TIMEFRAMES=[
   {l:'1秒', m:0.0167},
-  {l:'30秒',m:0.5},
   {l:'1分', m:1},{l:'3分',m:3},{l:'5分',m:5},{l:'15分',m:15},{l:'30分',m:30},
   {l:'1时', m:60},{l:'2时',m:120},{l:'4时',m:240},{l:'8时',m:480},{l:'日线',m:1440},{l:'周线',m:10080}
 ];
@@ -827,7 +826,7 @@ let lazyLoadSym=null, lazyLoadTfMin=null;
 function createMainSeries(){
   const u='#3fb950',d='#f85149';
   if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
-  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'transparent',downColor:'transparent',borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'rgba(0,0,0,0)',downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
   else if(chartType==='bar') candleSeries=mainChart.addBarSeries({upColor:u,downColor:d});
   else if(chartType==='line') candleSeries=mainChart.addLineSeries({color:'#58a6ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   else if(chartType==='area') candleSeries=mainChart.addAreaSeries({lineColor:'#58a6ff',topColor:'#58a6ff55',bottomColor:'#58a6ff00',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
