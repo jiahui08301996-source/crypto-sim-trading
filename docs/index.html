@@ -304,7 +304,7 @@ input:focus,select:focus{border-color:var(--ac)}
 const EXCHANGES = {
   binance: {
     name:'Binance', color:'#f0b90b',
-    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',480:'8h',1440:'1d',10080:'1w'},
+    tfMap:{0.0167:'1s',0.5:null/*binance无30s,跳过*/,1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',480:'8h',1440:'1d',10080:'1w'},
     fmtSym: s => s,           // BTCUSDT as-is
     fmtDisplay: s => s.replace('USDC','/C').replace('USDT','/T').replace('BTC','BTC/'),
     async getKlines(sym,iv,startMs){
@@ -342,7 +342,7 @@ const EXCHANGES = {
   },
   okx: {
     name:'OKX', color:'#00d4ff',
-    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1H',120:'2H',240:'4H',480:'8H',1440:'1D',10080:'1W'},
+    tfMap:{0.0167:'1s',0.5:'30s',1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1H',120:'2H',240:'4H',480:'8H',1440:'1D',10080:'1W'},
     fmtSym: s=>s,
     fmtDisplay: s=>s,
     async getKlines(sym,iv,startMs){
@@ -381,7 +381,7 @@ const EXCHANGES = {
   },
   bybit: {
     name:'Bybit', color:'#ff914d',
-    tfMap:{1:'1',3:'3',5:'5',15:'15',30:'30',60:'60',120:'120',240:'240',480:'480',1440:'D',10080:'W'},
+    tfMap:{0.0167:'1'/*bybit最小1m*/, 0.5:'1',1:'1',3:'3',5:'5',15:'15',30:'30',60:'60',120:'120',240:'240',480:'480',1440:'D',10080:'W'},
     fmtSym: s=>s,
     fmtDisplay: s=>s.replace('USDT','/T').replace('USDC','/C'),
     async getKlines(sym,iv,startMs){
@@ -420,8 +420,10 @@ const EXCHANGES = {
 };
 
 const TIMEFRAMES=[
-  {l:'1分',m:1},{l:'3分',m:3},{l:'5分',m:5},{l:'15分',m:15},{l:'30分',m:30},
-  {l:'1时',m:60},{l:'2时',m:120},{l:'4时',m:240},{l:'8时',m:480},{l:'日线',m:1440},{l:'周线',m:10080}
+  {l:'1秒', m:0.0167},
+  {l:'30秒',m:0.5},
+  {l:'1分', m:1},{l:'3分',m:3},{l:'5分',m:5},{l:'15分',m:15},{l:'30分',m:30},
+  {l:'1时', m:60},{l:'2时',m:120},{l:'4时',m:240},{l:'8时',m:480},{l:'日线',m:1440},{l:'周线',m:10080}
 ];
 const INDICATORS=[
   {id:'ma',label:'MA'},{id:'ema',label:'EMA'},{id:'boll',label:'BOLL'},{id:'vol',label:'成交量'},
@@ -442,6 +444,10 @@ let maSettings=[{period:7,color:'#f6c90e'},{period:25,color:'#2962ff'},{period:9
 let modalExchange='binance';
 let orderBook={bids:[],asks:[]};
 let recentTrades=[];
+// Windowed / lazy loading state
+let isLoadingMore=false;
+let earliestLoadedTime=null;
+let lazyLoadSym=null, lazyLoadTfMin=null;
 
 // ════════════════════════════════════════════════════════
 // CHART INIT
@@ -463,7 +469,15 @@ function initCharts(){
     rightPriceScale:{borderColor:'#30363d'},
   });
   let syncing=false;
-  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{if(syncing||!r)return;syncing=true;subChart.timeScale().setVisibleLogicalRange(r);syncing=false;redrawCanvas();});
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{
+    if(syncing||!r)return;
+    syncing=true;
+    subChart.timeScale().setVisibleLogicalRange(r);
+    syncing=false;
+    redrawCanvas();
+    // lazy load: when user scrolls near the left edge of loaded data
+    if(r.from<80 && lazyLoadSym && !isLoadingMore) loadMoreLeft();
+  });
   subChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{if(syncing||!r)return;syncing=true;mainChart.timeScale().setVisibleLogicalRange(r);syncing=false;});
   mainChart.subscribeCrosshairMove(()=>redrawCanvas());
   new ResizeObserver(()=>{
@@ -670,6 +684,7 @@ async function selectSym(sym,exId){
   curSym=sym;
   orderBook={bids:[],asks:[]};
   recentTrades=[];
+  lazyLoadSym=null; earliestLoadedTime=null; isLoadingMore=false;
   document.getElementById('symBtnText').textContent=EXCHANGES[curExchange].fmtDisplay(sym);
   closeSymModal();
   await loadKlines(sym,curTfMin);
@@ -888,29 +903,91 @@ function renderTrades(){
 // ════════════════════════════════════════════════════════
 // KLINE CACHE + PRELOAD
 // ════════════════════════════════════════════════════════
-const klineCache = {}; // klineCache[exId][sym][tfMin] = data[]
-
+const klineCache = {};
 function cacheKey(exId,sym,tfMin){ return `${exId}|${sym}|${tfMin}`; }
 
-// Wrap loadKlines to use cache
+const HF_WINDOW_MS = 3*3600*1000; // 3 hours
+function isHighFreq(tfMin){ return tfMin<=0.5; }
+
+// Windowed load for 1s/30s
+async function loadKlinesWindowed(sym,tfMin){
+  const ex=EXCHANGES[curExchange], iv=ex.tfMap[tfMin];
+  const ov=document.getElementById('ov');
+  ov.textContent='加载K线 (窗口模式)...'; ov.style.display='flex';
+  if(!iv){ov.textContent=`${ex.name} 不支持该周期`;setTimeout(()=>ov.style.display='none',1500);return;}
+  const data=await _fetchRange(ex,sym,iv,tfMin,Date.now()-HF_WINDOW_MS,Date.now());
+  chartData=data;
+  candleSeries.setData(chartData);
+  mainChart.timeScale().fitContent();
+  if(chartData.length){earliestLoadedTime=chartData[0].time;prices[sym]=chartData[chartData.length-1].close;updatePriceDisplay(sym,prices[sym],changes[sym]||0);}
+  renderIndicators(chartData);
+  ov.textContent=`✓ ${chartData.length}根 · 最近3小时 · 向左拖动加载更多`;
+  setTimeout(()=>ov.style.display='none',1400);
+  lazyLoadSym=sym; lazyLoadTfMin=tfMin; isLoadingMore=false;
+}
+
+// Lazy load: triggered when user scrolls to left edge
+async function loadMoreLeft(){
+  if(isLoadingMore||!lazyLoadSym||!earliestLoadedTime)return;
+  isLoadingMore=true;
+  const ex=EXCHANGES[curExchange], iv=ex.tfMap[lazyLoadTfMin];
+  if(!iv){isLoadingMore=false;return;}
+  const endMs=earliestLoadedTime*1000, startMs=endMs-HF_WINDOW_MS;
+  const ov=document.getElementById('ov');
+  ov.textContent='加载历史K线...'; ov.style.display='flex';
+  const newData=await _fetchRange(ex,lazyLoadSym,iv,lazyLoadTfMin,startMs,endMs);
+  if(newData.length){
+    const seen=new Set(chartData.map(c=>c.time));
+    const fresh=newData.filter(c=>!seen.has(c.time)).sort((a,b)=>a.time-b.time);
+    chartData=[...fresh,...chartData];
+    candleSeries.setData(chartData);
+    earliestLoadedTime=chartData[0].time;
+    renderIndicators(chartData);
+    ov.textContent=`✓ 载入 ${fresh.length} 根历史K线`;
+  } else {
+    ov.textContent='已到最早数据';
+  }
+  setTimeout(()=>ov.style.display='none',800);
+  isLoadingMore=false;
+}
+
+// Range fetch helper
+async function _fetchRange(ex,sym,iv,tfMin,startMs,endMs){
+  const all=[];let start=startMs,batch=0;
+  const maxPer=curExchange==='okx'?300:1000;
+  while(start<endMs){
+    const chunk=await ex.getKlines(sym,iv,start);
+    if(!chunk||!chunk.length) break;
+    all.push(...chunk.filter(c=>c.time*1000<endMs));
+    const last=chunk[chunk.length-1];
+    start=(last.closeMs||last.time*1000+Math.round(tfMin*60000))+1;
+    batch++;
+    if(chunk.length<maxPer||start>=endMs) break;
+    if(batch%5===0) await sleep(150);
+  }
+  const seen=new Set();
+  return all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
+}
+
+// Wrap loadKlines: high-freq→windowed, others→cache
 const _origLoad = loadKlines;
 loadKlines = async function(sym, tfMin) {
-  const key = cacheKey(curExchange, sym, tfMin);
-  if (klineCache[key]) {
-    // instant: use cache
-    chartData = klineCache[key];
+  if(isHighFreq(tfMin)){
+    await loadKlinesWindowed(sym,tfMin);
+    return;
+  }
+  lazyLoadSym=null; lazyLoadTfMin=null; // disarm lazy loader
+  const key=cacheKey(curExchange,sym,tfMin);
+  if(klineCache[key]){
+    chartData=klineCache[key];
     candleSeries.setData(chartData);
     mainChart.timeScale().fitContent();
-    if (chartData.length) {
-      prices[sym] = chartData[chartData.length-1].close;
-      updatePriceDisplay(sym, prices[sym], changes[sym]||0);
-    }
+    if(chartData.length){prices[sym]=chartData[chartData.length-1].close;updatePriceDisplay(sym,prices[sym],changes[sym]||0);}
     renderIndicators(chartData);
     return;
   }
-  await _origLoad(sym, tfMin);
-  // store in cache after load
-  if (chartData.length) klineCache[key] = [...chartData];
+  await _origLoad(sym,tfMin);
+  if(chartData.length) klineCache[key]=[...chartData];
 };
 
 // Preload: top symbols at 1H + 1D for selected exchange
