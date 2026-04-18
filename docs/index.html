@@ -1166,7 +1166,17 @@ async function loadKlines(sym,tfMin){
     const seen=new Set();
     chartData=all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
     setSeriesData(chartData);
-    mainChart.timeScale().fitContent();
+    // Smart zoom: show last N candles based on timeframe
+    if (chartData.length > 0) {
+      const n = curTfMin <= 1 ? 200 : curTfMin <= 5 ? 200 : curTfMin <= 60 ? 150 : 100;
+      const endTime = chartData[chartData.length-1].time;
+      const startTime = chartData[Math.max(0, chartData.length-n)].time;
+      try {
+        mainChart.timeScale().setVisibleRange({from: startTime, to: endTime + curTfMin*60});
+      } catch(e) { mainChart.timeScale().fitContent(); }
+    } else {
+      mainChart.timeScale().fitContent();
+    }
     if(chartData.length){const last=chartData[chartData.length-1];prices[sym]=last.close;updatePriceDisplay(sym,last.close,changes[sym]||0);}
     renderIndicators(chartData);
     ov.textContent=`✓ ${chartData.length}根`;
