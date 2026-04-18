@@ -204,41 +204,100 @@ function initChart() {
 }
 
 // ══════════════════════════════════════════
-// FETCH HISTORICAL KLINES (Binance REST API)
+// FETCH HISTORICAL KLINES — 分页加载
 // ══════════════════════════════════════════
+
+// 每个周期对应的加载起始时间
+function getStartTime(interval) {
+  const now = Date.now();
+  const DAY = 86400_000;
+  const map = {
+    '1m':  7   * DAY,   // 7天   (~10080根)
+    '3m':  21  * DAY,   // 21天
+    '5m':  30  * DAY,   // 30天
+    '15m': 90  * DAY,   // 90天
+    '30m': 180 * DAY,   // 6个月
+    '1h':  365 * DAY,   // 1年
+    '2h':  365 * DAY,   // 1年
+    '4h':  365 * DAY,   // 1年
+    '8h':  365 * DAY,   // 1年
+    '1d':  0,           // 全部历史 (从2017年)
+    '1w':  0,           // 全部历史
+  };
+  const offset = map[interval] ?? 365 * DAY;
+  return offset === 0 ? 1498867200000 : now - offset; // 2017-07-01 作为最早起点
+}
+
 async function loadKlines(sym, interval) {
-  document.getElementById('loadingOverlay').style.display = 'flex';
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.textContent = '加载K线数据...';
+  overlay.style.display = 'flex';
+
+  const allData = [];
+  let startTime = getStartTime(interval);
+  const now = Date.now();
+  let batchCount = 0;
+
   try {
-    // Try USDC endpoint, fallback to USDT
-    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=500`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(res.status);
-    const raw = await res.json();
+    while (startTime < now) {
+      const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&startTime=${startTime}&limit=1000`;
+      const res = await fetch(url);
+      if (!res.ok) break;
+      const raw = await res.json();
+      if (!raw.length) break;
 
-    const data = raw.map(k => ({
-      time:  Math.floor(k[0] / 1000),
-      open:  parseFloat(k[1]),
-      high:  parseFloat(k[2]),
-      low:   parseFloat(k[3]),
-      close: parseFloat(k[4]),
-    }));
+      for (const k of raw) {
+        allData.push({
+          time:  Math.floor(k[0] / 1000),
+          open:  parseFloat(k[1]),
+          high:  parseFloat(k[2]),
+          low:   parseFloat(k[3]),
+          close: parseFloat(k[4]),
+        });
+      }
 
-    candleSeries.setData(data);
+      // 下一批从最后一根K线的收盘时间+1ms开始
+      const lastCloseTime = raw[raw.length - 1][6];
+      startTime = lastCloseTime + 1;
+      batchCount++;
+
+      overlay.textContent = `加载中... ${allData.length} 根K线`;
+
+      // 已经到达当前时间附近就停止
+      if (raw.length < 1000) break;
+
+      // 防止请求过快，限速
+      if (batchCount % 5 === 0) await sleep(300);
+    }
+
+    // 去重 + 排序（防止边界重叠）
+    const seen = new Set();
+    const deduped = allData.filter(c => {
+      if (seen.has(c.time)) return false;
+      seen.add(c.time); return true;
+    }).sort((a, b) => a.time - b.time);
+
+    candleSeries.setData(deduped);
     chart.timeScale().fitContent();
 
-    // seed current price from last candle
-    if (data.length) {
-      const last = data[data.length - 1];
+    if (deduped.length) {
+      const last = deduped[deduped.length - 1];
       prices[sym] = last.close;
-      // init live candle buffer
       liveCandle[`${sym}_${interval}`] = { ...last };
       updatePriceDisplay(sym, last.close);
     }
+
+    overlay.textContent = `✓ ${deduped.length} 根K线已加载`;
+    setTimeout(() => overlay.style.display = 'none', 800);
+
   } catch(e) {
     console.error('klines fetch error', e);
+    overlay.textContent = '加载失败，请刷新重试';
+    setTimeout(() => overlay.style.display = 'none', 2000);
   }
-  document.getElementById('loadingOverlay').style.display = 'none';
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ══════════════════════════════════════════
 // WEBSOCKET — Binance (ticker + kline stream)
