@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>模拟交易平台</title>
+<title>XNdemo - 数字资产模拟交易</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -314,25 +314,9 @@ input:focus,select:focus{border-color:var(--ac)}
 <!-- SPLASH SCREEN -->
 <div id="splash">
   <div class="splash-logo">📈</div>
-  <div class="splash-title">模拟交易平台</div>
-  <div class="splash-sub">选择交易所开始模拟交易</div>
-  <div class="splash-ex-row">
-    <button class="splash-ex-btn" onclick="startWith('binance')">
-      <div class="ex-icon">🟡</div>
-      <div class="ex-name">Binance</div>
-      <div class="ex-desc">全球最大交易所</div>
-    </button>
-    <button class="splash-ex-btn" onclick="startWith('okx')">
-      <div class="ex-icon">🔵</div>
-      <div class="ex-name">OKX</div>
-      <div class="ex-desc">欧易，亚洲最大</div>
-    </button>
-    <button class="splash-ex-btn" onclick="startWith('bybit')">
-      <div class="ex-icon">🟠</div>
-      <div class="ex-name">Bybit</div>
-    <div class="splash-ex-row" style="margin-top:12px">
-      <button class="splash-ex-btn" onclick="startWith('hyperliquid')">
-        <div class="ex-icon">🟢</div>
+  <div class="splash-title">XNdemo</div>
+  <div class="splash-sub">数字资产XNdemo 模拟交易</div>
+  <div class="splash-ex-row"><p style="color:#a259ff">正在连接 Aster DEX...</p></div>
         <div class="ex-name">Hyperliquid</div>
         <div class="ex-desc" style="color:#00e5a0">去中心化 · Layer 1 DEX</div>
         <div class="ex-desc">229 永续合约</div>
@@ -357,11 +341,7 @@ input:focus,select:focus{border-color:var(--ac)}
 
 <header style="display:none" id="mainHeader">
   <div class="logo">📈 模拟交易</div>
-  <div class="ex-tabs">
-    <button class="ex-tab active" onclick="setExchange('binance')">Binance</button>
-    <button class="ex-tab" onclick="setExchange('okx')">OKX</button>
-    <button class="ex-tab" onclick="setExchange('bybit')">Bybit</button>
-  </div>
+  <div class="ex-tabs"><span style="color:#a259ff;font-weight:700;font-size:13px">Aster DEX</span></div>
   <button id="symBtn" onclick="openSymModal()">
     <span id="symBtnText">BTC/USDC</span>
     <span style="color:var(--mu);font-size:10px">▼</span>
@@ -754,165 +734,11 @@ input:focus,select:focus{border-color:var(--ac)}
 // EXCHANGE CONFIG
 // ════════════════════════════════════════════════════════
 const EXCHANGES = {
-  binance: {
-    name:'Binance', color:'#f0b90b',
-    tfMap:{0.0167:'1s',0.5:null/*binance无30s,跳过*/,1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',480:'8h',1440:'1d',10080:'1w'},
-    fmtSym: s => s,           // BTCUSDT as-is
-    fmtDisplay: s => s.replace('USDC','/C').replace('USDT','/T').replace('BTC','BTC/'),
-    async getKlines(sym,iv,startMs){
-      const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
-      const r=await fetch(url); if(!r.ok) return null;
-      const raw=await r.json();
-      return raw.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:k[6]}));
-    },
-    buildWS(syms,tf){
-      const sl=syms[0].toLowerCase();
-      const streams=[
-        ...syms.map(s=>`${s.toLowerCase()}@ticker`),
-        `${sl}@kline_${tf}`,
-        `${sl}@depth20@100ms`,
-        `${sl}@aggTrade`,
-      ].join('/');
-      return `wss://fstream.binance.com/stream?streams=${streams}`;
-    },
-    parseWS(data,stream){
-      if(stream.includes('@ticker')) return {type:'ticker',sym:data.s,price:+data.c,chg:+data.P};
-      if(stream.includes('@kline')){const k=data.k;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
-      if(stream.includes('@depth')){return{type:'depth',bids:data.bids.map(b=>[+b[0],+b[1]]).filter(b=>b[1]>0),asks:data.asks.map(a=>[+a[0],+a[1]]).filter(a=>a[1]>0)};}
-      if(stream.includes('@aggTrade')){return{type:'trade',price:data.p,qty:data.q,isBuy:!data.m,time:data.T};}
-      return null;
-    },
-    categories:{
-      '主流':['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT'],
-      'USDC对':['BTCUSDC','ETHUSDC','SOLUSDC','BNBUSDC','XRPUSDC'],
-      'Layer1公链':['ADAUSDT','AVAXUSDT','DOTUSDT','NEARUSDT','ATOMUSDT','APTUSDT','SUIUSDT','ALGOUSDT','XLMUSDT','VETUSDT','TRXUSDT','ETCUSDT'],
-      'Layer2':['MATICUSDT','ARBUSDT','OPUSDT','STRKUSDT','IMXUSDT'],
-      'DeFi':['UNIUSDT','LINKUSDT','AAVEUSDT','SUSHIUSDT','CRVUSDT','MKRUSDT','COMPUSDT','SNXUSDT'],
-      'Meme':['DOGEUSDT','SHIBUSDT','PEPEUSDT','FLOKIUSDT','WIFUSDT','BONKUSDT','MEMEUSDT'],
-      '其他':['LTCUSDT','BCHUSDT','FILUSDT','AXSUSDT','SANDUSDT','MANAUSDT','GALAUSDT','CHZUSDT','ENAUSDT','FETUSDT'],
-    }
-  },
-  okx: {
-    name:'OKX', color:'#00d4ff',
-    tfMap:{0.0167:'1s',0.5:'30s',1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1H',120:'2H',240:'4H',480:'8H',1440:'1D',10080:'1W'},
-    fmtSym: s=>s,
-    fmtDisplay: s=>s,
-    async getKlines(sym,iv,startMs){
-      // OKX returns newest first, paginate with after param
-      const url=`https://www.okx.com/api/v5/market/history-candles?instId=${sym}&bar=${iv}&after=${startMs}&limit=300`;
-      const r=await fetch(url); if(!r.ok) return null;
-      const json=await r.json(); if(json.code!=='0') return null;
-      return json.data.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:+k[0]+60000})).reverse();
-    },
-    buildWS(syms,tf){return 'wss://ws.okx.com:8443/ws/v5/public';},
-    wsOnOpen(ws,syms,tf){
-      const args=[
-        ...syms.map(s=>({channel:'tickers',instId:s})),
-        {channel:`candle${tf}`,instId:syms[0]},
-        {channel:'books5',instId:syms[0]},
-        {channel:'trades',instId:syms[0]},
-      ];
-      ws.send(JSON.stringify({op:'subscribe',args}));
-    },
-    parseWS(data){
-      if(data.arg?.channel==='tickers'&&data.data?.[0]){const d=data.data[0];return{type:'ticker',sym:d.instId,price:+d.last,chg:+d.sodUtc8?((+d.last-+d.sodUtc8)/+d.sodUtc8*100):0};}
-      if(data.arg?.channel?.startsWith('candle')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.arg.instId,tf:data.arg.channel.replace('candle',''),time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]};}
-      if(data.arg?.channel==='books5'&&data.data?.[0]){const d=data.data[0];return{type:'depth',bids:d.bids.map(b=>[+b[0],+b[1]]),asks:d.asks.map(a=>[+a[0],+a[1]])};}
-      if(data.arg?.channel==='trades'&&data.data?.[0]){const d=data.data[0];return{type:'trade',price:d.px,qty:d.sz,isBuy:d.side==='buy',time:+d.ts};}
-      return null;
-    },
-    categories:{
-      '主流':['BTC-USDT','ETH-USDT','OKB-USDT','SOL-USDT','XRP-USDT'],
-      'USDC对':['BTC-USDC','ETH-USDC','SOL-USDC'],
-      'Layer1公链':['ADA-USDT','AVAX-USDT','DOT-USDT','NEAR-USDT','ATOM-USDT','APT-USDT','SUI-USDT','TRX-USDT','ETC-USDT'],
-      'Layer2':['MATIC-USDT','ARB-USDT','OP-USDT'],
-      'DeFi':['UNI-USDT','LINK-USDT','AAVE-USDT','CRV-USDT','MKR-USDT'],
-      'Meme':['DOGE-USDT','SHIB-USDT','PEPE-USDT','FLOKI-USDT','WIF-USDT'],
-      '其他':['LTC-USDT','BCH-USDT','FIL-USDT','AXS-USDT','SAND-USDT'],
-    }
-  },
-  bybit: {
-    name:'Bybit', color:'#ff914d',
-    tfMap:{0.0167:'1'/*bybit最小1m*/, 0.5:'1',1:'1',3:'3',5:'5',15:'15',30:'30',60:'60',120:'120',240:'240',480:'480',1440:'D',10080:'W'},
-    fmtSym: s=>s,
-    fmtDisplay: s=>s.replace('USDT','/T').replace('USDC','/C'),
-    async getKlines(sym,iv,startMs){
-      const url=`https://api.bybit.com/v5/market/kline?category=linear&symbol=${sym}&interval=${iv}&start=${startMs}&limit=1000`;
-      const r=await fetch(url); if(!r.ok) return null;
-      const json=await r.json(); if(json.retCode!==0) return null;
-      return json.result.list.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:+k[0]+60000})).reverse();
-    },
-    buildWS(syms,tf){return 'wss://stream.bybit.com/v5/public/linear';},
-    wsOnOpen(ws,syms,tf){
-      const topics=[
-        ...syms.map(s=>`tickers.${s}`),
-        `kline.${tf}.${syms[0]}`,
-        `orderbook.20.${syms[0]}`,
-        `publicTrade.${syms[0]}`,
-      ];
-      ws.send(JSON.stringify({op:'subscribe',args:topics}));
-    },
-    parseWS(data){
-      if(data.topic?.startsWith('tickers.')&&data.data){const d=data.data;return{type:'ticker',sym:d.symbol,price:+d.lastPrice,chg:+d.price24hPcnt*100};}
-      if(data.topic?.startsWith('kline.')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.topic.split('.')[2],tf:data.topic.split('.')[1],time:Math.floor(k.start/1000),open:+k.open,high:+k.high,low:+k.low,close:+k.close,volume:+k.volume};}
-      if(data.topic?.startsWith('orderbook.')&&data.data){const d=data.data;return{type:'depth',bids:(d.b||[]).map(b=>[+b[0],+b[1]]),asks:(d.a||[]).map(a=>[+a[0],+a[1]])};}
-      if(data.topic?.startsWith('publicTrade.')&&data.data?.[0]){const t=data.data[0];return{type:'trade',price:t.p,qty:t.v,isBuy:t.S==='Buy',time:t.T};}
-      return null;
-    },
-    categories:{
-      '主流':['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','BNBUSDT'],
-      'USDC对':['BTCUSDC','ETHUSDC'],
-      'Layer1公链':['ADAUSDT','AVAXUSDT','DOTUSDT','NEARUSDT','ATOMUSDT','APTUSDT','SUIUSDT','TRXUSDT'],
-      'Layer2':['MATICUSDT','ARBUSDT','OPUSDT'],
-      'DeFi':['UNIUSDT','LINKUSDT','AAVEUSDT'],
-      'Meme':['DOGEUSDT','SHIBUSDT','PEPEUSDT','WIFUSDT'],
-      '其他':['LTCUSDT','BCHUSDT','FILUSDT'],
-    }
-  },
-  hyperliquid: {
-    name:'Hyperliquid', color:'#00e5a0', skipPreload:true,
-    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',1440:'1d'},
-    fmtSym: s => s,
-    fmtDisplay: s => s + '-USD',
-    async getKlines(sym, iv, startMs) {
-      try {
-        const body = JSON.stringify({type:'candleSnapshot',req:{coin:sym,interval:iv,startTime:startMs,endTime:Date.now()}});
-        const r = await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body});
-        if(!r.ok) return null;
-        const raw = await r.json();
-        if(!Array.isArray(raw)||!raw.length) return null;
-        return raw.map(k=>({'time':Math.floor(k.t/1000),'open':+k.o,'high':+k.h,'low':+k.l,'close':+k.c,'volume':+k.v,'closeMs':k.T}));
-      } catch(e) { return null; }
-    },
-    buildWS(syms,tf){return 'wss://api.hyperliquid.xyz/ws';},
-    wsOnOpen(ws,syms,tf){
-      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'allMids'}}));
-      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'candle',coin:syms[0],interval:tf}}));
-      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'l2Book',coin:syms[0]}}));
-      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'trades',coin:syms[0]}}));
-    },
-    parseWS(data){
-      if(data.channel==='allMids'&&data.data?.mids){const mids=data.data.mids;return{type:'tickers',data:Object.entries(mids).map(([sym,price])=>({'type':'ticker',sym,price:+price,chg:0})) };}
-      if(data.channel==='candle'&&data.data){const k=data.data;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
-      if(data.channel==='l2Book'&&data.data){const d=data.data;return{type:'depth',bids:(d.levels[0]||[]).map(l=>[+l.px,+l.sz]),asks:(d.levels[1]||[]).map(l=>[+l.px,+l.sz])};}
-      if(data.channel==='trades'&&data.data){const t=data.data[0];if(t)return{type:'trade',price:t.px,qty:t.sz,isBuy:t.side==='A',time:+t.time};}
-      return null;
-    },
-    categories:{
-      '主流': ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "AVAX", "ADA", "TRX", "LTC", "BCH", "DOT", "NEAR", "ATOM", "APT", "SUI"],
-      'DeFi': ["UNI", "AAVE", "LINK", "CRV", "LDO", "SNX", "COMP", "MKR", "SUSHI", "RUNE", "GMX", "PENDLE", "JUP", "STG", "CAKE", "FXS"],
-      'Layer2': ["ARB", "OP", "MATIC", "POL", "STRK", "IMX", "MANTA", "ZETA", "BLAST", "ZK", "SCR", "LINEA"],
-      'Meme': ["kPEPE", "kSHIB", "kBONK", "kFLOKI", "kDOGS", "kNEIRO", "kLUNC", "WIF", "BOME", "POPCAT", "BRETT", "MEW", "TURBO", "MEME", "GOAT", "MOODENG", "PNUT", "CHILLGUY", "FARTCOIN", "JELLY", "TRUMP", "MELANIA", "TST", "PURR", "NEIROETH"],
-      'AI': ["AI", "TAO", "RENDER", "RNDR", "FET", "VIRTUAL", "AIXBT", "AI16Z", "ZEREBRO", "GRIFFAIN", "PROMPT", "KAITO", "HYPER"],
-      '基础设施': ["FIL", "AR", "ICP", "HBAR", "XLM", "ALGO", "KAS", "IOTA", "ZEC", "XMR", "DASH", "PYTH", "TIA", "ORDI", "INJ", "SEI", "TON", "EIGEN", "HYPE"],
-      '其他': ["DYDX", "APE", "STX", "CFX", "FTM", "WLD", "HPOS", "RLB", "UNIBOT", "YGG", "OX", "FRIEND", "SHIA", "CYBER", "ZRO", "BLZ", "BANANA", "TRB", "FTT", "LOOM", "OGN", "RDNT", "ARK", "BNT", "CANTO", "REQ", "BIGTIME", "ORBS", "BLUR", "BSV", "MINA", "POLYX", "GAS", "STRAX", "BADGER", "NEO", "ZEN", "ILV", "GMT", "SUPER", "USTC", "NFTI", "RSR", "GALA", "JTO", "NTRN", "ACE", "MAV", "PEOPLE", "ENS", "ETC", "XAI", "UMA", "ONDO", "ALT", "DYM", "MAVIA", "W", "PANDORA", "PIXEL", "MYRO", "ETHFI", "ENA", "MNT", "TNSR", "SAGA", "MERL", "OMNI", "REZ", "NOT", "IO", "LISTA", "CATI", "CELO", "HMSTR", "GRASS", "SAND", "ME", "MOVE", "PENGU", "USUAL", "BIO", "SPX", "S", "MORPHO", "ANIME", "VINE", "VVV", "BERA", "LAYER", "IP", "OM", "NIL", "PAXG", "BABY", "WCT", "ZORA", "INIT", "DOOD", "LAUNCHCOIN", "NXPC", "SOPH", "RESOLV", "SYRUP", "PUMP", "PROVE", "YZY", "XPL", "WLFI", "SKY", "ASTER", "AVNT", "STBL", "0G", "HEMI", "APEX", "2Z", "MON", "MET", "MEGA", "CC", "AERO", "STABLE", "FOGO", "LIT", "AXS", "SKR", "AZTEC"]
-    }
-  },
   aster: {
     name:'Aster DEX', color:'#a259ff', skipPreload:true,
     tfMap:{1:'1m',5:'5m',15:'15m',30:'30m',60:'1h',240:'4h',1440:'1d'},
     fmtSym: s => s,
-    fmtDisplay: s => s.replace('USDT','/T'),
+    fmtDisplay: s => s.replace('USDT','/USDT'),
     async getKlines(sym,iv,startMs){
       try {
         const url=`https://www.asterdex.com/api/v1/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
@@ -923,7 +749,8 @@ const EXCHANGES = {
     },
     buildWS(syms,tf){
       const sl=syms[0].toLowerCase();
-      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${tf}`,`${sl}@depth20@100ms`,`${sl}@aggTrade`].join('/');
+      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),
+        `${sl}@kline_${tf}`,`${sl}@depth20@100ms`,`${sl}@aggTrade`].join('/');
       return `wss://stream.asterdex.com/stream?streams=${streams}`;
     },
     parseWS(data,stream){
@@ -935,11 +762,13 @@ const EXCHANGES = {
       return null;
     },
     categories:{
-      '全部': ["BTCUSDT", "ETHUSDT", "BNBUSDT", "BIOUSDT", "GUAUSDT", "GIGGLEUSDT", "SOONUSDT", "SKYAIUSDT", "DEXEUSDT", "SENTISUSDT", "CYSUSDT", "WBULLUSDT", "LISAUSDT", "PALUUSDT", "SZNUSDT", "USD1USDT", "PUPUSDT", "USDCUSDT", "VELOUSDT", "FORMUSDT", "NBUSDT", "ASTERUSDT", "CMC20USDT", "DUSTUSDT", "GAIXUSDT", "BIANLIFEUSDT", "HEMIUSDT", "ATUSDT", "CSXHUSDT", "STARUSDT", "AVLUSDT", "B2USDT", "TAGUSDT", "ARTXUSDT", "BMTUSDT", "BREVUSDT", "UUSDT", "CWZYUSDT", "YEPEUSDT", "CDLUSDT", "4USDT"]
+      '主流': ["BTCUSDT", "ETHUSDT", "BNBUSDT"],
+      'DeFi': ["DEXEUSDT", "VELOUSDT", "ASTERUSDT"],
+      'Meme': ["GUAUSDT", "GIGGLEUSDT", "PUPUSDT", "SOONUSDT"],
+      '新币': ["BIOUSDT", "SKYAIUSDT", "SENTISUSDT", "CYSUSDT", "WBULLUSDT", "LISAUSDT", "PALUUSDT", "SZNUSDT", "USD1USDT", "CMC20USDT", "DUSTUSDT", "GAIXUSDT", "BIANLIFEUSDT", "HEMIUSDT", "ATUSDT", "CSXHUSDT", "STARUSDT", "AVLUSDT", "B2USDT", "TAGUSDT", "ARTXUSDT", "BMTUSDT", "BREVUSDT", "UUSDT", "CWZYUSDT", "YEPEUSDT", "CDLUSDT", "FORMUSDT", "NBUSDT", "4USDT"],
     }
   }
-
-};
+}
 
 const TIMEFRAMES=[
   {l:'1秒', m:0.0167},
@@ -1386,67 +1215,14 @@ let _panelRefreshTimer = null;
 
 async function fetchAllTickers(exId) {
   try {
-    if (exId === 'binance') {
-      const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
-      if (!r.ok) return;
-      const data = await r.json();
-      data.forEach(t => {
-        prices[t.symbol] = +t.lastPrice;
-        changes[t.symbol] = +t.priceChangePercent;
-      });
-    } else if (exId === 'hyperliquid') {
-      const r = await fetch('https://api.hyperliquid.xyz/info', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({type:'allMids'})
-      });
-      if (!r.ok) return;
-      const data = await r.json();
-      if (data.mids) Object.entries(data.mids).forEach(([sym,p]) => { prices[sym] = +p; });
-      // Get 24h change from metaAndAssetCtxs
-      const r2 = await fetch('https://api.hyperliquid.xyz/info', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({type:'metaAndAssetCtxs'})
-      });
-      if (r2.ok) {
-        const d2 = await r2.json();
-        const universe = d2[0]?.universe || [];
-        const ctxs = d2[1] || [];
-        universe.forEach((u, i) => {
-          const ctx = ctxs[i];
-          if (ctx && ctx.prevDayPx && prices[u.name]) {
-            const prev = +ctx.prevDayPx;
-            const cur = prices[u.name];
-            if (prev > 0) changes[u.name] = (cur - prev) / prev * 100;
-          }
-        });
-      }
-    } else if (exId === 'okx') {
-      const r = await fetch('https://www.okx.com/api/v5/market/tickers?instType=SWAP');
-      if (!r.ok) return;
-      const d = await r.json();
-      (d.data || []).forEach(t => {
-        prices[t.instId] = +t.last;
-        const open24 = +t.open24h;
-        if (open24 > 0) changes[t.instId] = (+t.last - open24) / open24 * 100;
-      });
-    } else if (exId === 'bybit') {
-      const r = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
-      if (!r.ok) return;
-      const d = await r.json();
-      ((d.result||{}).list||[]).forEach(t => {
-        prices[t.symbol] = +t.lastPrice;
-        changes[t.symbol] = +t.price24hPcnt * 100;
-      });
-    } else if (exId === 'aster') {
-      const r = await fetch('https://www.asterdex.com/api/v1/ticker/24hr');
-      if (!r.ok) return;
-      const data = await r.json();
-      data.forEach(t => {
-        prices[t.symbol] = +t.lastPrice;
-        changes[t.symbol] = +t.priceChangePercent;
-      });
-    }
-  } catch(e) { console.warn('fetchAllTickers error', exId, e); }
+    const r = await fetch('https://www.asterdex.com/api/v1/ticker/24hr');
+    if (!r.ok) return;
+    const data = await r.json();
+    data.forEach(t => {
+      prices[t.symbol] = +t.lastPrice;
+      changes[t.symbol] = +t.priceChangePercent;
+    });
+  } catch(e) { console.warn('fetchAllTickers error', e); }
 }
 
 function startPanelRefresh() {
@@ -1465,7 +1241,7 @@ function stopPanelRefresh() {
 async function selectSym(sym,exId){
   if(exId!==curExchange){
     curExchange=exId;
-    document.querySelectorAll('.ex-tab').forEach((el,i)=>{el.classList.toggle('active',['binance','okx','bybit'][i]===exId);});
+    // XNdemo: single exchange, no tab switching});
   }
   curSym=sym;
   orderBook={bids:[],asks:[]};
@@ -1483,7 +1259,7 @@ async function selectSym(sym,exId){
 async function setExchange(id){
   if(id===curExchange) return;
   curExchange=id;
-  document.querySelectorAll('.ex-tab').forEach((el,i)=>el.classList.toggle('active',['binance','okx','bybit'][i]===id));
+  // XNdemo: single exchange, no tab switching
   // pick first symbol of new exchange
   const cats=EXCHANGES[id].categories;
   curSym=Object.values(cats)[0][0];
@@ -2057,7 +1833,7 @@ async function _fetchRange(ex,sym,iv,tfMin,startMs,endMs){
 // ────────────────────────────────────────────────────────
 // IndexedDB persistent cache (survives page refresh)
 // ────────────────────────────────────────────────────────
-const IDB_NAME='CryptoSimCache', IDB_STORE='klines';
+const IDB_NAME='XNdemoCache', IDB_STORE='klines';
 let _idb=null;
 async function idbOpen(){
   if(_idb) return _idb;
@@ -2222,338 +1998,35 @@ async function checkCacheStatus(exId) {
 // ENTRY POINT — user picks exchange on splash
 // ════════════════════════════════════════════════════════
 // ── Auto-preload: start loading Binance data silently on page open ────────
-let _autoPreloadDone = false;
-let _autoPreloadPromise = null;
-
-async function _doAutoPreload() {
-  try {
-    await preloadAll('binance', function(){});
-    _autoPreloadDone = true;
-  } catch(e) { /* ignore, will reload on click */ }
-}
-
-window.addEventListener('DOMContentLoaded', function() {
-  _autoPreloadPromise = _doAutoPreload();
-});
+// XNdemo: auto-start with Aster DEX
+let _autoPreloadDone = false, _autoPreloadPromise = null;
+window.addEventListener('DOMContentLoaded', () => startWith('aster'));
 
 async function startWith(exId) {
   const ex = EXCHANGES[exId];
-
-  // If auto-preload already done for binance, skip loading screen entirely
-  if (exId === 'binance' && _autoPreloadDone) {
-    // data is ready - jump straight to app
-  } else {
-    // Show loading UI
-    document.querySelectorAll('.splash-ex-row').forEach(el=>el.style.display='none');
-    const _splashSub=document.querySelector('.splash-sub');if(_splashSub)_splashSub.style.display='none';
-    const loadDiv = document.getElementById('splash-loading');
-    loadDiv.style.display = 'flex';
-    if (exId === 'binance' && _autoPreloadPromise) {
-      // Preload in progress - wait for it silently
-      document.getElementById('splashTitle').textContent = '即将就绪，正在完成预加载...';
-      await _autoPreloadPromise;
-    } else {
-      if (ex.skipPreload) {
-        // DEX: skip bulk preload, enter directly
-        document.getElementById('splashTitle').textContent = '连接 ' + ex.name + '中，请稍候...';
-        document.getElementById('splashPb').style.width = '100%';
-        document.getElementById('splashPct').textContent = '直接进入';
-        await new Promise(r => setTimeout(r, 300));
-      } else {
-      const {hits, total} = await checkCacheStatus(exId);
-      const fromCache = hits > 0;
-      document.getElementById('splashTitle').textContent = fromCache
-    ? `📦 从本地缓存加载 ${ex.name}... (${hits}/${total} 命中)`
-    : `正在首次加载 ${ex.name} 行情数据...`;
-
-  // preload with progress
-  await preloadAll(exId, (done, total, sym, tfMin) => {
-    const pct = total ? Math.round(done/total*100) : 100;
-    document.getElementById('splashPb').style.width = pct + '%';
-    document.getElementById('splashPct').textContent = `${done}/${total} · ${pct}%`;
-    if (sym) {
-      const tfLabel = TIMEFRAMES.find(t=>t.m===tfMin)?.l || tfMin;
-      document.getElementById('splashSym').textContent = `${sym}  ${tfLabel}`;
-    }
-  });
-      } // end !skipPreload
-    }
-  }
-
-  // set exchange + default symbol
+  // Set exchange + default symbol
   curExchange = exId;
   curSym = Object.values(ex.categories).flat()[0];
-  curTfMin = 60; // default 1H
-
-  // update exchange tab buttons
-  document.querySelectorAll('.ex-tab').forEach((el,i)=>
-    el.classList.toggle('active', ['binance','okx','bybit'][i] === exId)
-  );
+  curTfMin = 60;
   document.getElementById('symBtnText').textContent = ex.fmtDisplay(curSym);
-
-  // init charts + charts bar
+  // Init charts
   initCharts();
   initCanvas();
   buildCtrlBar();
   canvas.style.pointerEvents = 'none';
-
-  // show main UI
+  // Show main UI
   document.getElementById('mainHeader').style.display = 'flex';
   document.getElementById('ctrlBar').style.display    = 'flex';
   document.getElementById('mainLayout').style.display = 'flex';
   document.getElementById('bottom-panel').style.display = 'flex';
-
-  // load default symbol (already cached, instant) + connect WS
+  // Load klines + connect WS
   await loadKlines(curSym, curTfMin);
   connectWS();
   updateBottomBadges();
   renderPositions();
-
-  // fade out splash last
+  // Hide splash
   const splash = document.getElementById('splash');
-  splash.style.transition = 'opacity .5s';
-  splash.style.opacity = '0';
-  setTimeout(() => { splash.style.display = 'none'; }, 500);
-}
-
-// ════════════════════════════════════════════════════════
-// CHART TYPE SWITCHING
-// ════════════════════════════════════════════════════════
-function createMainSeries(){
-  const u='#3fb950',d='#f85149';
-  if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
-  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'transparent',downColor:'transparent',borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
-  else if(chartType==='bar') candleSeries=mainChart.addBarSeries({upColor:u,downColor:d});
-  else if(chartType==='line') candleSeries=mainChart.addLineSeries({color:'#58a6ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
-  else if(chartType==='area') candleSeries=mainChart.addAreaSeries({lineColor:'#58a6ff',topColor:'#58a6ff55',bottomColor:'#58a6ff00',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
-}
-function setSeriesData(data){
-  if(!candleSeries||!data.length) return;
-  if(chartType==='line'||chartType==='area') candleSeries.setData(data.map(d=>({time:d.time,value:d.close})));
-  else candleSeries.setData(data);
-}
-function updateSeriesCandle(c){
-  if(!candleSeries) return;
-  if(chartType==='line'||chartType==='area') candleSeries.update({time:c.time,value:c.close});
-  else candleSeries.update(c);
-}
-function switchChartType(type){
-  chartType=type;
-  try{mainChart.removeSeries(candleSeries);}catch{}
-  createMainSeries();
-  setSeriesData(chartData);
-  renderIndicators(chartData);
-  buildCtrlBar();
-}
-
-// ════════════════════════════════════════════════════════
-// ZOOM + FULLSCREEN
-// ════════════════════════════════════════════════════════
-function zoomIn(){const r=mainChart.timeScale().getVisibleLogicalRange();if(!r)return;const m=(r.from+r.to)/2,h=(r.to-r.from)*0.35;mainChart.timeScale().setVisibleLogicalRange({from:m-h,to:m+h});}
-function zoomOut(){const r=mainChart.timeScale().getVisibleLogicalRange();if(!r)return;const m=(r.from+r.to)/2,h=(r.to-r.from)*0.7;mainChart.timeScale().setVisibleLogicalRange({from:m-h,to:m+h});}
-function zoomFit(){mainChart.timeScale().fitContent();}
-
-let _isFullscreen=false;
-function toggleFullscreen(){
-  const ca=document.getElementById('chart-area');
-  _isFullscreen=!_isFullscreen;
-  ca.classList.toggle('fullscreen',_isFullscreen);
-  document.getElementById('fsBtn').textContent=_isFullscreen?'✕':'⛶';
-  setTimeout(()=>{
-    const mw=document.getElementById('main-wrap');
-    mainChart.resize(mw.clientWidth,mw.clientHeight);
-    const sw=document.getElementById('sub-wrap');
-    if(sw.style.display!=='none') subChart.resize(sw.clientWidth,sw.clientHeight);
-    resizeCanvas();
-  },50);
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&_isFullscreen)toggleFullscreen();});
-
-// ════════════════════════════════════════════════════════
-// THEME TOGGLE
-// ════════════════════════════════════════════════════════
-let _isDark=true;
-function toggleTheme(){
-  _isDark=!_isDark;
-  document.documentElement.setAttribute('data-theme',_isDark?'dark':'light');
-  document.getElementById('themeBtn').textContent=_isDark?'🌙':'☀️';
-  localStorage.setItem('theme',_isDark?'dark':'light');
-  const bg=_isDark?'#0d1117':'#f0f3f7',tx=_isDark?'#8b949e':'#57606a';
-  const opts={layout:{background:{color:bg},textColor:tx},grid:{vertLines:{color:_isDark?'#21262d':'#e1e4e8'},horzLines:{color:_isDark?'#21262d':'#e1e4e8'}}};
-  mainChart.applyOptions(opts); subChart.applyOptions(opts);
-}
-// Restore saved theme
-(function(){const t=localStorage.getItem('theme');if(t==='light'){_isDark=false;document.documentElement.setAttribute('data-theme','light');document.getElementById('themeBtn').textContent='☀️';}})();
-
-// ════════════════════════════════════════════════════════
-// EQUITY CURVE
-// ════════════════════════════════════════════════════════
-let equityHistory=JSON.parse(localStorage.getItem('equityHistory')||'[]');
-function recordEquity(){
-  const acc=getAccount();let pnl=0;
-  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
-  const equity=acc.balance+pnl, now=Math.floor(Date.now()/1000);
-  if(!equityHistory.length||now-equityHistory[equityHistory.length-1].time>30){
-    equityHistory.push({time:now,value:equity});
-    if(equityHistory.length>2000) equityHistory=equityHistory.slice(-2000);
-    localStorage.setItem('equityHistory',JSON.stringify(equityHistory));
-    if(activeTab==='account') drawEquityCurve();
-  }
-}
-setInterval(recordEquity,5000);
-
-function drawEquityCurve(){
-  const el=document.getElementById('equity-canvas');if(!el||equityHistory.length<2) return;
-  const w=el.offsetWidth||240, h=el.height||80;
-  el.width=w; const c=el.getContext('2d');c.clearRect(0,0,w,h);
-  const vals=equityHistory.map(e=>e.value);
-  const mn=Math.min(...vals)*0.999, mx=Math.max(...vals)*1.001, rng=mx-mn||1;
-  const n=vals.length;
-  const px=(i,v)=>[i/(n-1)*(w-2)+1, h-2-(v-mn)/rng*(h-4)];
-  const up=vals[vals.length-1]>=vals[0];
-  const col=up?'#3fb950':'#f85149';
-  // Fill
-  c.beginPath(); c.moveTo(1,h-2);
-  vals.forEach((v,i)=>{const[x,y]=px(i,v);c.lineTo(x,y);});
-  c.lineTo(w-1,h-2); c.closePath();
-  const g=c.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,col+'55'); g.addColorStop(1,col+'00');
-  c.fillStyle=g; c.fill();
-  // Line
-  c.beginPath(); vals.forEach((v,i)=>{const[x,y]=px(i,v);i===0?c.moveTo(x,y):c.lineTo(x,y);});
-  c.strokeStyle=col; c.lineWidth=1.5; c.stroke();
-  // Labels
-  const first=equityHistory[0],last=equityHistory[equityHistory.length-1];
-  const chg=((last.value-first.value)/first.value*100);
-  document.getElementById('equity-range-lbl').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
-  document.getElementById('equity-range-lbl').style.color=up?'var(--gn)':'var(--rd)';
-}
-
-// ════════════════════════════════════════════════════════
-// SHARE / SCREENSHOT CARD
-// ════════════════════════════════════════════════════════
-function openShareModal(){
-  document.getElementById('share-modal').style.display='flex';
-  if(navigator.share) document.getElementById('nativeShareBtn').style.display='';
-  generateShareCard();
-}
-function closeShareModal(){document.getElementById('share-modal').style.display='none';}
-
-function generateShareCard(){
-  const W=1200,H=630;
-  const el=document.getElementById('share-canvas');
-  el.width=W; el.height=H;
-  const c=el.getContext('2d');
-
-  // Background gradient
-  const isDark=_isDark;
-  const bg1=isDark?'#0d1117':'#f8faff', bg2=isDark?'#111827':'#e8f0fe';
-  const grad=c.createLinearGradient(0,0,W,H);
-  grad.addColorStop(0,bg1); grad.addColorStop(1,bg2);
-  c.fillStyle=grad; c.fillRect(0,0,W,H);
-
-  // Subtle grid lines
-  c.strokeStyle=isDark?'#ffffff08':'#0000000a'; c.lineWidth=1;
-  for(let x=0;x<W;x+=60){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke();}
-  for(let y=0;y<H;y+=60){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
-
-  // Top bar
-  const accentCol=isDark?'#58a6ff':'#0969da';
-  c.fillStyle=accentCol;c.fillRect(0,0,W,4);
-
-  // Logo + exchange
-  c.fillStyle=isDark?'#e6edf3':'#1f2328';
-  c.font='bold 28px Segoe UI';c.fillText('📈 模拟交易',40,55);
-  const exObj=EXCHANGES[curExchange];
-  c.fillStyle=isDark?'#8b949e':'#57606a';
-  c.font='16px Segoe UI';c.fillText(exObj.name.toUpperCase(),44,78);
-
-  // Symbol + price
-  const p=prices[curSym]||0, chg=changes[curSym]||0;
-  const isUp=chg>=0;
-  c.fillStyle=isDark?'#e6edf3':'#1f2328';
-  c.font='bold 22px Segoe UI';
-  c.fillText(exObj.fmtDisplay(curSym),40,140);
-  c.font='bold 56px Segoe UI';
-  c.fillStyle=isUp?'#3fb950':'#f85149';
-  c.fillText('$'+(p.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})),40,210);
-  c.font='bold 22px Segoe UI';
-  c.fillStyle=isUp?'#3fb950':'#f85149';
-  c.fillText((isUp?'▲ +':'▼ ')+chg.toFixed(2)+'%  24h',40,245);
-
-  // Mini candlestick chart (right side)
-  if(chartData.length>5){
-    const cx=350,cy=100,cw=W-cx-40,ch=400;
-    const slice=chartData.slice(-Math.min(80,chartData.length));
-    const hi=Math.max(...slice.map(d=>d.high)), lo=Math.min(...slice.map(d=>d.low)), rng=hi-lo||1;
-    const barW=cw/slice.length;
-    slice.forEach((d,i)=>{
-      const x=cx+i*barW+barW*0.1, bw=barW*0.8;
-      const oY=cy+ch-(d.open-lo)/rng*ch, cY=cy+ch-(d.close-lo)/rng*ch;
-      const hY=cy+ch-(d.high-lo)/rng*ch, lY=cy+ch-(d.low-lo)/rng*ch;
-      const up=d.close>=d.open;
-      c.strokeStyle=up?'#3fb950':'#f85149'; c.lineWidth=1;
-      c.beginPath();c.moveTo(x+bw/2,hY);c.lineTo(x+bw/2,lY);c.stroke();
-      c.fillStyle=up?'#3fb950':'#f85149';
-      const bodyY=Math.min(oY,cY), bodyH=Math.max(Math.abs(cY-oY),1);
-      c.fillRect(x,bodyY,bw,bodyH);
-    });
-    // Chart border
-    c.strokeStyle=isDark?'#30363d':'#d0d7de'; c.lineWidth=1;
-    c.strokeRect(cx-1,cy-1,cw+2,ch+2);
-  }
-
-  // Equity + PnL (bottom left)
-  const acc=getAccount();let pnl=0;
-  for(const[sym,pos]of Object.entries(acc.positions)){const pp=prices[sym]||0;pnl+=pos.side==='long'?(pp-pos.entryPrice)*pos.size:(pos.entryPrice-pp)*pos.size;}
-  const equity=acc.balance+pnl;
-  const totalPnl=equity-100000, pnlPct=(totalPnl/100000*100);
-  c.fillStyle=isDark?'#8b949e':'#57606a'; c.font='14px Segoe UI';c.fillText('账户净值',40,310);
-  c.fillStyle=isDark?'#e6edf3':'#1f2328'; c.font='bold 32px Segoe UI';
-  c.fillText('$'+equity.toFixed(2),40,350);
-  c.font='bold 18px Segoe UI';
-  c.fillStyle=totalPnl>=0?'#3fb950':'#f85149';
-  c.fillText((totalPnl>=0?'▲ +':'▼ ')+'$'+Math.abs(totalPnl).toFixed(2)+' ('+pnlPct.toFixed(2)+'%)',40,382);
-
-  // Mini equity curve
-  if(equityHistory.length>2){
-    const ex=40,ey=410,ew=260,eh=60;
-    const vals=equityHistory.map(e=>e.value);
-    const mn=Math.min(...vals)*0.999,mx=Math.max(...vals)*1.001,rng=mx-mn||1;
-    const up2=vals[vals.length-1]>=vals[0];
-    c.fillStyle=isDark?'#161b2255':'#ffffff55';c.fillRect(ex,ey,ew,eh);
-    const pts=vals.map((v,i)=>[ex+i/(vals.length-1)*ew, ey+eh-(v-mn)/rng*eh]);
-    c.beginPath();c.moveTo(ex,ey+eh);
-    pts.forEach(([px2,py])=>c.lineTo(px2,py));
-    c.lineTo(ex+ew,ey+eh);c.closePath();
-    const g2=c.createLinearGradient(0,ey,0,ey+eh);
-    g2.addColorStop(0,(up2?'#3fb950':'#f85149')+'55');g2.addColorStop(1,(up2?'#3fb950':'#f85149')+'00');
-    c.fillStyle=g2;c.fill();
-    c.beginPath();pts.forEach(([px2,py],i)=>i===0?c.moveTo(px2,py):c.lineTo(px2,py));
-    c.strokeStyle=up2?'#3fb950':'#f85149';c.lineWidth=2;c.stroke();
-    c.fillStyle=isDark?'#8b949e':'#57606a';c.font='11px Segoe UI';c.fillText('资金曲线',ex+2,ey-4);
-  }
-
-  // Time
-  c.fillStyle=isDark?'#484f58':'#8c959f'; c.font='13px Segoe UI';
-  c.fillText(new Date().toLocaleString('zh'),40,H-20);
-
-  // URL watermark
-  c.fillStyle=accentCol; c.font='13px Segoe UI';
-  const url='jiahui08301996-source.github.io/crypto-sim-trading';
-  c.fillText(url, W-c.measureText(url).width-30, H-20);
-
-  // Branding strip
-  c.fillStyle=accentCol+'33'; c.fillRect(0,H-40,W,40);
-  c.fillStyle=accentCol; c.font='bold 13px Segoe UI';
-  c.fillText('🚀 CryptoSim — 用真实行情，练习真实交易技术',W/2-180,H-14);
-}
-
-function downloadCard(){
-  const el=document.getElementById('share-canvas');
-  const a=document.createElement('a');
-  a.download=`CryptoSim_${curSym}_${Date.now()}.png`;
-  a.href=el.toDataURL('image/png');a.click();
+  if (splash) { splash.style.opacity='0'; setTimeout(()=>splash.style.display='none',300); }
 }
 async function nativeShare(){
   const el=document.getElementById('share-canvas');
