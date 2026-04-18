@@ -1223,6 +1223,8 @@ function calcLiqPrice(entry, side, lev) {
 function calcMargin(entry, size, lev) { return (entry * size) / lev; }
 
 // ── POSITIONS TABLE ────────────────────────────────────────────────────
+function showTpslTip(){toast('请在下单面板设置止盈止损');}
+
 function renderPositions() {
   const acc = getAccount();
   const hideOther = document.getElementById('hideOtherChk') &&
@@ -1238,202 +1240,144 @@ function renderPositions() {
     const lev = pos.leverage || globalLeverage;
     const mgn = calcMargin(pos.entryPrice, pos.size, lev);
     const liq = calcLiqPrice(pos.entryPrice, pos.side, lev);
-    const pnl = pos.side === 'long'
-      ? (p - pos.entryPrice) * pos.size
-      : (pos.entryPrice - p) * pos.size;
-    const roe = mgn > 0 ? pnl / mgn * 100 : 0;
+    const pnl = pos.side === 'long' ? (p-pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
+    const roe = mgn > 0 ? pnl/mgn*100 : 0;
     const pc2 = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
     const isLong = pos.side === 'long';
-    const sideLabel = isLong ? '买入' : '卖出';
-    return '<tr>' +
-      '<td><div class="sym-cell">' +
-        '<div class="sym-name">' + sym + '</div>' +
-        '<div class="sym-side">' +
-          '<span class="' + (isLong ? 'side-long' : 'side-short') + '">' + sideLabel + '</span>' +
-          '<span class="lev-badge' + (isLong ? '' : ' short') + '">' + lev + 'x</span>' +
-          '<span style="color:#848e9c;font-size:10px">逐仓</span>' +
-        '</div></div></td>' +
-      '<td style="color:#eaecef">' + pos.size.toFixed(5) + '<br><small style="color:#848e9c">USDT</small></td>' +
-      '<td style="color:#eaecef">$' + fmtPrice(pos.entryPrice) + '</td>' +
-      '<td style="color:#f0b90b">$' + fmtPrice(p) + '</td>' +
-      '<td style="color:#eaecef">' + mgn.toFixed(4) + ' USDT<br><small style="color:#848e9c">(逐仓)</small></td>' +
-      '<td style="color:#f6465d">$' + fmtPrice(liq) + '</td>' +
-      '<td><div class="' + pc2 + '">' + (pnl >= 0 ? '+' : '') + pnl.toFixed(4) + ' USDT</div>' +
-          '<div class="' + pc2 + '" style="font-size:11px">' + (roe >= 0 ? '+' : '') + roe.toFixed(2) + '%</div></td>' +
-      '<td><button class="add-tpsl" onclick="alert('请在下单面板设置止盈止损')">添加 &#10753;</button></td>' +
-      '<td><button class="add-tpsl" onclick="alert('请在下单面板设置止盈止损')">添加 &#10753;</button></td>' +
-      '<td><button class="rev-btn" onclick="placeReverseOrder('' + sym + '','' + pos.side + '',' + pos.size + ')">反向订单</button></td>' +
-      '<td style="white-space:nowrap">' +
-        '<button class="close-mp" onclick="closePosition('' + sym + '')">市价</button>' +
-        '<button class="close-lp" onclick="openCloseLimitDialog('' + sym + '','' + pos.side + '',' + pos.size + ')">限价</button>' +
-      '</td>' +
-    '</tr>';
+    return `<tr>
+      <td><div class="sym-cell">
+        <div class="sym-name">${sym}</div>
+        <div class="sym-side">
+          <span class="${isLong?'side-long':'side-short'}">${isLong?'买入':'卖出'}</span>
+          <span class="lev-badge${isLong?'':' short'}">${lev}x</span>
+          <span style="color:#848e9c;font-size:10px">逐仓</span>
+        </div></div></td>
+      <td style="color:#eaecef">${pos.size.toFixed(5)}<br><small style="color:#848e9c">USDT</small></td>
+      <td style="color:#eaecef">$${fmtPrice(pos.entryPrice)}</td>
+      <td style="color:#f0b90b">$${fmtPrice(p)}</td>
+      <td style="color:#eaecef">${mgn.toFixed(4)} USDT<br><small style="color:#848e9c">(逐仓)</small></td>
+      <td style="color:#f6465d">$${fmtPrice(liq)}</td>
+      <td><div class="${pc2}">${pnl>=0?'+':''}${pnl.toFixed(4)} USDT</div>
+          <div class="${pc2}" style="font-size:11px">${roe>=0?'+':''}${roe.toFixed(2)}%</div></td>
+      <td><button class="add-tpsl" onclick="showTpslTip()">添加 &#10753;</button></td>
+      <td><button class="add-tpsl" onclick="showTpslTip()">添加 &#10753;</button></td>
+      <td><button class="rev-btn" onclick="placeReverseOrder('${sym}','${pos.side}',${pos.size})">反向订单</button></td>
+      <td style="white-space:nowrap">
+        <button class="close-mp" onclick="closePosition('${sym}')">市价</button>
+        <button class="close-lp" onclick="openCloseLimitDialog('${sym}','${pos.side}',${pos.size})">限价</button>
+      </td></tr>`;
   }).join('');
-  // Update right-panel summary too
-  let totalPnl = 0;
-  for (const [sym, pos] of Object.entries(acc.positions)) {
-    const p = prices[sym] || 0;
-    totalPnl += pos.side === 'long' ? (p - pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
-  }
-  const equity = acc.balance + totalPnl;
-  const totalReturn = equity - 100000, pct = (totalReturn/100000*100);
-  const sumEl = document.getElementById('acc-summary');
-  if (sumEl) sumEl.innerHTML =
-    '<div class="acc-sum">' +
-    '<div class="acc-sum-row"><span class="acc-sum-lbl">账户权益 (USDT)</span><span class="acc-sum-val">$' + equity.toFixed(2) + '</span></div>' +
-    '<div class="acc-sum-row"><span class="acc-sum-lbl">可用余额</span><span class="acc-sum-val">$' + acc.balance.toFixed(2) + '</span></div>' +
-    '<div class="acc-sum-row"><span class="acc-sum-lbl">持仓盈亏</span><span class="acc-sum-val ' + (totalPnl>=0?'pos':'neg') + '">' + (totalPnl>=0?'+':'') + '$' + totalPnl.toFixed(2) + '</span></div>' +
-    '<div class="acc-sum-row"><span class="acc-sum-lbl">累计盈亏</span><span class="acc-sum-val ' + (totalReturn>=0?'pos':'neg') + '">' + (totalReturn>=0?'+':'') + '$' + totalReturn.toFixed(2) + ' (' + (pct>=0?'+':'') + pct.toFixed(2) + '%)</span></div>' +
-    '<div id="equity-wrap" style="margin-top:6px"><div class="equity-stats"><span style="font-size:10px;color:var(--mu)">资金曲线</span><span id="equity-range-lbl" style="font-size:10px"></span></div><canvas id="equity-canvas" height="70" style="width:100%;border-radius:5px;background:var(--bg)"></canvas></div>' +
-    '</div>';
-  setTimeout(drawEquityCurve, 30);
+  let totalPnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;totalPnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
+  const equity=acc.balance+totalPnl,totalReturn=equity-100000,pct=totalReturn/100000*100;
+  const sumEl=document.getElementById('acc-summary');
+  if(sumEl)sumEl.innerHTML=`<div class="acc-sum"><div class="acc-sum-row"><span class="acc-sum-lbl">账户权益 (USDT)</span><span class="acc-sum-val">$${equity.toFixed(2)}</span></div><div class="acc-sum-row"><span class="acc-sum-lbl">可用余额</span><span class="acc-sum-val">$${acc.balance.toFixed(2)}</span></div><div class="acc-sum-row"><span class="acc-sum-lbl">持仓盈亏</span><span class="acc-sum-val ${totalPnl>=0?'pos':'neg'}">${totalPnl>=0?'+':''}$${totalPnl.toFixed(2)}</span></div><div class="acc-sum-row"><span class="acc-sum-lbl">累计盈亏</span><span class="acc-sum-val ${totalReturn>=0?'pos':'neg'}">${totalReturn>=0?'+':''}$${totalReturn.toFixed(2)} (${pct>=0?'+':''}${pct.toFixed(2)}%)</span></div><div id="equity-wrap" style="margin-top:6px"><div class="equity-stats"><span style="font-size:10px;color:var(--mu)">资金曲线</span><span id="equity-range-lbl" style="font-size:10px"></span></div><canvas id="equity-canvas" height="70" style="width:100%;border-radius:5px;background:var(--bg)"></canvas></div></div>`;
+  setTimeout(drawEquityCurve,30);
 }
 
 function placeReverseOrder(sym, side, size) {
-  const revSide = side === 'long' ? 'sell' : 'buy';
+  const revSide = side==='long'?'sell':'buy';
   const acc = getAccount();
-  const o = {id: Date.now()+Math.random().toString(36).slice(2), symbol:sym, side:revSide,
-    type:'market', price:0, size, tp:null, sl:null, time:Date.now(), status:'open', leverage:globalLeverage};
+  const o = {id:Date.now()+Math.random().toString(36).slice(2),symbol:sym,side:revSide,
+    type:'market',price:0,size,tp:null,sl:null,time:Date.now(),status:'open',leverage:globalLeverage};
   const fp = asl(prices[sym]||0, revSide, size);
-  if (fp > 0) { fillOrder(acc, o, fp, TAKER_FEE); saveAccount(acc); updateBottomBadges(); renderPositions(); toast('反向订单已执行'); }
+  if(fp>0){fillOrder(acc,o,fp,TAKER_FEE);saveAccount(acc);updateBottomBadges();renderPositions();toast('反向订单已执行');}
 }
 
 function openCloseLimitDialog(sym, side, size) {
-  const p = prices[sym] || 0;
-  const price = prompt('限价平仓 ' + sym + '，请输入价格：', p.toFixed(2));
-  if (!price || isNaN(+price)) return;
-  const revSide = side === 'long' ? 'sell' : 'buy';
+  const p = prices[sym]||0;
+  const price = prompt('限价平仓 '+sym+'，请输入价格：', p.toFixed(2));
+  if(!price||isNaN(+price)) return;
+  const revSide = side==='long'?'sell':'buy';
   const acc = getAccount();
-  const o = {id: Date.now()+Math.random().toString(36).slice(2), symbol:sym, side:revSide,
-    type:'limit', price:+price, size, tp:null, sl:null, time:Date.now(), status:'open', leverage:globalLeverage};
-  acc.orders.push(o); saveAccount(acc); updateBottomBadges(); renderOpenOrders();
-  toast('限价平仓 @ $' + (+price).toFixed(2) + ' 已挂单');
+  const o = {id:Date.now()+Math.random().toString(36).slice(2),symbol:sym,side:revSide,
+    type:'limit',price:+price,size,tp:null,sl:null,time:Date.now(),status:'open',leverage:globalLeverage};
+  acc.orders.push(o);saveAccount(acc);updateBottomBadges();renderOpenOrders();
+  toast('限价平仓 @ $'+(+price).toFixed(2)+' 已挂单');
 }
 
-// ── OPEN ORDERS TABLE ──────────────────────────────────────────────────
 function renderOpenOrders() {
-  const acc = getAccount(), tbody = document.getElementById('curord-tbody'); if (!tbody) return;
-  if (!acc.orders.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">暂无委托</td></tr>'; return;
-  }
-  const tmap = {limit:'限价', market:'市价', stop_limit:'止损限价'};
-  tbody.innerHTML = acc.orders.map(o => {
-    const lev = o.leverage || globalLeverage;
-    const tpsl = (o.tp || o.sl)
-      ? '<span style="color:#0ecb81">TP:' + (o.tp ? fmtPrice(o.tp) : '--') + '</span>' +
-        ' / <span style="color:#f6465d">SL:' + (o.sl ? fmtPrice(o.sl) : '--') + '</span>'
-      : '--';
-    return '<tr>' +
-      '<td style="color:#848e9c">' + new Date(o.time).toLocaleTimeString('zh') + '</td>' +
-      '<td style="color:#eaecef;font-weight:600">' + o.symbol + '</td>' +
-      '<td style="color:#848e9c">' + (tmap[o.type]||o.type) + '</td>' +
-      '<td class="' + (o.side==='buy'?'side-long':'side-short') + '">' + (o.side==='buy'?'买入':'卖出') + '</td>' +
-      '<td><span class="lev-badge' + (o.side==='buy'?'':' short') + '">' + lev + 'x</span></td>' +
-      '<td style="color:#eaecef">' + o.size + '</td>' +
-      '<td style="color:#eaecef">' + (o.type==='market'?'市价':'$'+fmtPrice(o.price)) + '</td>' +
-      '<td style="font-size:11px">' + tpsl + '</td>' +
-      '<td><button class="cancel-ord-btn" onclick="cancelOrder('' + o.id + '')">撤单</button></td>' +
-    '</tr>';
+  const acc=getAccount(),tbody=document.getElementById('curord-tbody');if(!tbody)return;
+  if(!acc.orders.length){tbody.innerHTML='<tr class="empty-row"><td colspan="9">暂无委托</td></tr>';return;}
+  const tmap={limit:'限价',market:'市价',stop_limit:'止损限价'};
+  tbody.innerHTML=acc.orders.map(o=>{
+    const lev=o.leverage||globalLeverage;
+    const tpsl=(o.tp||o.sl)?`<span style="color:#0ecb81">TP:${o.tp?fmtPrice(o.tp):'--'}</span> / <span style="color:#f6465d">SL:${o.sl?fmtPrice(o.sl):'--'}</span>`:'--';
+    return `<tr>
+      <td style="color:#848e9c">${new Date(o.time).toLocaleTimeString('zh')}</td>
+      <td style="color:#eaecef;font-weight:600">${o.symbol}</td>
+      <td style="color:#848e9c">${tmap[o.type]||o.type}</td>
+      <td class="${o.side==='buy'?'side-long':'side-short'}">${o.side==='buy'?'买入':'卖出'}</td>
+      <td><span class="lev-badge${o.side==='buy'?'':' short'}">${lev}x</span></td>
+      <td style="color:#eaecef">${o.size}</td>
+      <td style="color:#eaecef">${o.type==='market'?'市价':'$'+fmtPrice(o.price)}</td>
+      <td style="font-size:11px">${tpsl}</td>
+      <td><button class="cancel-ord-btn" onclick="cancelOrder('${o.id}')">撤单</button></td>
+    </tr>`;
   }).join('');
 }
 
-// ── ASSET TABLE ────────────────────────────────────────────────────────
 function renderAsset() {
-  const acc = getAccount(), tbody = document.getElementById('asset-tbody'); if (!tbody) return;
-  let pnl = 0;
-  for (const [sym, pos] of Object.entries(acc.positions)) {
-    const p = prices[sym] || 0;
-    pnl += pos.side==='long' ? (p-pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
-  }
-  const equity = acc.balance + pnl;
-  const ret = (equity - 100000) / 100000 * 100;
-  const realized = acc.history.filter(h=>h.status==='filled')
-    .reduce((s,h)=>s+(h.fillPrice-(h.price||h.fillPrice))*h.size, 0);
-  tbody.innerHTML = '<tr>' +
-    '<td style="color:#f0b90b;font-weight:700">USDT</td>' +
-    '<td style="color:#eaecef">' + equity.toFixed(4) + '</td>' +
-    '<td style="color:#eaecef">' + acc.balance.toFixed(4) + '</td>' +
-    '<td class="' + (pnl>=0?'pnl-pos':'pnl-neg') + '">' + (pnl>=0?'+':'') + pnl.toFixed(4) + '</td>' +
-    '<td class="' + (realized>=0?'pnl-pos':'pnl-neg') + '">' + (realized>=0?'+':'') + realized.toFixed(4) + '</td>' +
-    '<td class="' + (ret>=0?'pnl-pos':'pnl-neg') + '">' + (ret>=0?'+':'') + ret.toFixed(2) + '%</td>' +
-  '</tr>';
+  const acc=getAccount(),tbody=document.getElementById('asset-tbody');if(!tbody)return;
+  let pnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
+  const equity=acc.balance+pnl,ret=(equity-100000)/100000*100;
+  const realized=acc.history.filter(h=>h.status==='filled').reduce((s,h)=>s+(h.fillPrice-(h.price||h.fillPrice))*h.size,0);
+  tbody.innerHTML=`<tr>
+    <td style="color:#f0b90b;font-weight:700">USDT</td>
+    <td style="color:#eaecef">${equity.toFixed(4)}</td>
+    <td style="color:#eaecef">${acc.balance.toFixed(4)}</td>
+    <td class="${pnl>=0?'pnl-pos':'pnl-neg'}">${pnl>=0?'+':''}${pnl.toFixed(4)}</td>
+    <td class="${realized>=0?'pnl-pos':'pnl-neg'}">${realized>=0?'+':''}${realized.toFixed(4)}</td>
+    <td class="${ret>=0?'pnl-pos':'pnl-neg'}">${ret>=0?'+':''}${ret.toFixed(2)}%</td>
+  </tr>`;
 }
 
-// ── HISTORY ORDERS TABLE ───────────────────────────────────────────────
-let histFilter = 'all';
-function setHistFilter(f, el) {
-  histFilter = f;
-  document.querySelectorAll('.hist-filter-btn').forEach(b=>b.classList.remove('active'));
-  if(el) el.classList.add('active');
-  renderHistOrders();
-}
 function renderHistOrders() {
-  const acc = getAccount(), tbody = document.getElementById('histord-tbody'); if (!tbody) return;
-  let items = acc.history.filter(h=>histFilter==='all'||h.status===histFilter)
-    .slice().reverse().slice(0,100);
-  if (!items.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">暂无记录</td></tr>'; return;
-  }
-  const tmap = {limit:'限价', market:'市价', stop_limit:'止损限价'};
-  tbody.innerHTML = items.map(h => {
-    const t = new Date(h.cancelTime||h.time);
-    const ds = t.toLocaleDateString('zh',{month:'2-digit',day:'2-digit'}) + ' ' +
-               t.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    return '<tr>' +
-      '<td style="color:#848e9c">' + ds + '</td>' +
-      '<td style="color:#eaecef;font-weight:600">' + h.symbol + '</td>' +
-      '<td style="color:#848e9c">' + (tmap[h.type]||'市价') + '</td>' +
-      '<td class="' + (h.side==='buy'?'side-long':'side-short') + '">' + (h.side==='buy'?'买入':'卖出') + '</td>' +
-      '<td style="color:#eaecef">' + h.size + '</td>' +
-      '<td style="color:#848e9c">' + (h.price?'$'+fmtPrice(h.price):'市价') + '</td>' +
-      '<td style="color:' + (h.status==='filled'?'#eaecef':'#848e9c') + '">' + (h.status==='filled'?'$'+fmtPrice(h.fillPrice):'--') + '</td>' +
-      '<td style="color:#f6465d">' + (h.status==='filled'?'-$'+(h.fee||0).toFixed(4):'--') + '</td>' +
-      '<td class="' + (h.status==='filled'?'pnl-pos':'') + '">' + (h.status==='filled'?'已成交':'已撤销') + '</td>' +
-    '</tr>';
+  const acc=getAccount(),tbody=document.getElementById('histord-tbody');if(!tbody)return;
+  let items=acc.history.filter(h=>histFilter==='all'||h.status===histFilter).slice().reverse().slice(0,100);
+  if(!items.length){tbody.innerHTML='<tr class="empty-row"><td colspan="9">暂无记录</td></tr>';return;}
+  const tmap={limit:'限价',market:'市价',stop_limit:'止损限价'};
+  tbody.innerHTML=items.map(h=>{
+    const t=new Date(h.cancelTime||h.time);
+    const ds=t.toLocaleDateString('zh',{month:'2-digit',day:'2-digit'})+' '+t.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const filled=h.status==='filled';
+    return `<tr>
+      <td style="color:#848e9c">${ds}</td>
+      <td style="color:#eaecef;font-weight:600">${h.symbol}</td>
+      <td style="color:#848e9c">${tmap[h.type]||'市价'}</td>
+      <td class="${h.side==='buy'?'side-long':'side-short'}">${h.side==='buy'?'买入':'卖出'}</td>
+      <td style="color:#eaecef">${h.size}</td>
+      <td style="color:#848e9c">${h.price?'$'+fmtPrice(h.price):'市价'}</td>
+      <td style="color:${filled?'#eaecef':'#848e9c'}">${filled?'$'+fmtPrice(h.fillPrice):'--'}</td>
+      <td style="color:#f6465d">${filled?'-$'+(h.fee||0).toFixed(4):'--'}</td>
+      <td class="${filled?'pnl-pos':''}">${filled?'已成交':'已撤销'}</td>
+    </tr>`;
   }).join('');
 }
 
-// ── HISTORY TRADES TABLE ───────────────────────────────────────────────
 function renderHistTrades() {
-  const acc = getAccount(), tbody = document.getElementById('histtrd-tbody'); if (!tbody) return;
-  const items = acc.history.filter(h=>h.status==='filled').slice().reverse().slice(0,100);
-  if (!items.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">暂无成交</td></tr>'; return;
-  }
-  tbody.innerHTML = items.map(h => {
-    const t = new Date(h.time);
-    const ds = t.toLocaleDateString('zh',{month:'2-digit',day:'2-digit'}) + ' ' +
-               t.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    return '<tr>' +
-      '<td style="color:#848e9c">' + ds + '</td>' +
-      '<td style="color:#eaecef;font-weight:600">' + h.symbol + '</td>' +
-      '<td class="' + (h.side==='buy'?'side-long':'side-short') + '">' + (h.side==='buy'?'买入':'卖出') + '</td>' +
-      '<td style="color:#eaecef">' + h.size + '</td>' +
-      '<td style="color:#f0b90b">$' + fmtPrice(h.fillPrice) + '</td>' +
-      '<td style="color:#eaecef">$' + (h.fillPrice*h.size).toFixed(2) + '</td>' +
-      '<td style="color:#f6465d">-$' + (h.fee||0).toFixed(4) + '</td>' +
-    '</tr>';
+  const acc=getAccount(),tbody=document.getElementById('histtrd-tbody');if(!tbody)return;
+  const items=acc.history.filter(h=>h.status==='filled').slice().reverse().slice(0,100);
+  if(!items.length){tbody.innerHTML='<tr class="empty-row"><td colspan="7">暂无成交</td></tr>';return;}
+  tbody.innerHTML=items.map(h=>{
+    const t=new Date(h.time);
+    const ds=t.toLocaleDateString('zh',{month:'2-digit',day:'2-digit'})+' '+t.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return `<tr>
+      <td style="color:#848e9c">${ds}</td>
+      <td style="color:#eaecef;font-weight:600">${h.symbol}</td>
+      <td class="${h.side==='buy'?'side-long':'side-short'}">${h.side==='buy'?'买入':'卖出'}</td>
+      <td style="color:#eaecef">${h.size}</td>
+      <td style="color:#f0b90b">$${fmtPrice(h.fillPrice)}</td>
+      <td style="color:#eaecef">$${(h.fillPrice*h.size).toFixed(2)}</td>
+      <td style="color:#f6465d">-$${(h.fee||0).toFixed(4)}</td>
+    </tr>`;
   }).join('');
 }
 
-function cancelOrder(id){
-  const acc=getAccount();
-  const o=acc.orders.find(x=>x.id===id);
-  if(o) acc.history.push({...o,status:'cancelled',fillPrice:0,fee:0,cancelTime:Date.now()});
-  acc.orders=acc.orders.filter(x=>x.id!==id);
-  saveAccount(acc);
-  updateBottomBadges();
-  if(activeBTab==='curord')  renderOpenOrders();
-  if(activeBTab==='histord') renderHistOrders();
-  if(activeBTab==='pos')     renderPositions();
-  toast('撤单成功');
-}
-function resetAccount(){if(!confirm('确认重置？所有数据清空'))return;localStorage.removeItem('account');toast('账户已重置');renderAccount();}
-function renderHistory(){
-  const acc=getAccount(),el=document.getElementById('histDiv');
-  if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
-  el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
-}
+function renderHistory(){renderHistOrders();}
+
+
 const ALL_PANES=['order','book','trades'];
 function switchTab(name,el){
   activeTab=name;
@@ -1829,7 +1773,7 @@ async function checkCacheStatus(exId) {
 // ════════════════════════════════════════════════════════
 // ENTRY POINT — user picks exchange on splash
 // ════════════════════════════════════════════════════════
-async async function startWith(exId) {
+async function startWith(exId) {
   document.querySelector('.splash-ex-row').style.display = 'none';
   document.querySelector('.splash-sub').style.display = 'none';
   const loadDiv = document.getElementById('splash-loading');
