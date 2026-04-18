@@ -817,6 +817,25 @@ let lazyLoadSym=null, lazyLoadTfMin=null;
 // ════════════════════════════════════════════════════════
 // CHART INIT
 // ════════════════════════════════════════════════════════
+
+function createMainSeries(){
+  const u='#3fb950',d='#f85149';
+  if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'transparent',downColor:'transparent',borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  else if(chartType==='bar') candleSeries=mainChart.addBarSeries({upColor:u,downColor:d});
+  else if(chartType==='line') candleSeries=mainChart.addLineSeries({color:'#58a6ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+  else if(chartType==='area') candleSeries=mainChart.addAreaSeries({lineColor:'#58a6ff',topColor:'#58a6ff55',bottomColor:'#58a6ff00',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
+}
+function setSeriesData(data){
+  if(!candleSeries||!data.length) return;
+  if(chartType==='line'||chartType==='area') candleSeries.setData(data.map(d=>({time:d.time,value:d.close})));
+  else candleSeries.setData(data);
+}
+function updateSeriesCandle(c){
+  if(!candleSeries) return;
+  if(chartType==='line'||chartType==='area') candleSeries.update({time:c.time,value:c.close});
+  else candleSeries.update(c);
+}
 function initCharts(){
   mainChart=LightweightCharts.createChart(document.getElementById('main-chart'),{
     layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
