@@ -97,6 +97,44 @@ header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;d
 #equity-wrap{padding:8px 0;flex-shrink:0}
 #equity-canvas{width:100%;height:80px;border-radius:6px;background:var(--bg)}
 .equity-stats{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);padding:2px 2px 4px}
+/* Position cards */
+.acc-sum{background:var(--bg);padding:10px 12px;border-bottom:1px solid var(--bd)}
+.acc-sum-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.acc-sum-lbl{font-size:10px;color:var(--mu)}
+.acc-sum-val{font-size:12px;font-weight:600}
+.pos-card{border-bottom:1px solid var(--bd);padding:10px 12px}
+.pos-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.pos-side-badge{padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700}
+.pos-side-badge.long{background:#3fb95022;color:#3fb950;border:1px solid #3fb95055}
+.pos-side-badge.short{background:#f8514922;color:#f85149;border:1px solid #f8514955}
+.pos-sym{font-size:13px;font-weight:700}
+.pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;font-size:11px;margin-bottom:8px}
+.pos-kv{display:flex;justify-content:space-between}
+.pos-lbl{color:var(--mu)}
+.pos-close-btn{width:100%;padding:5px;background:transparent;border:1px solid var(--rd);color:var(--rd);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600}
+.pos-close-btn:hover{background:var(--rd);color:#fff}
+/* Order rows */
+.ord-card{border-bottom:1px solid var(--bd);padding:9px 12px}
+.ord-top{display:flex;align-items:center;gap:5px;margin-bottom:4px;flex-wrap:wrap}
+.ord-badge{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700}
+.ord-badge.buy{background:#3fb95022;color:#3fb950;border:1px solid #3fb95055}
+.ord-badge.sell{background:#f8514922;color:#f85149;border:1px solid #f8514955}
+.ord-badge.filled{background:#58a6ff22;color:#58a6ff;border:1px solid #58a6ff55}
+.ord-badge.cancelled{background:#8b949e22;color:#8b949e;border:1px solid #8b949e55}
+.ord-sym{font-size:12px;font-weight:700}
+.ord-type{font-size:10px;color:var(--mu)}
+.ord-time{font-size:10px;color:var(--mu);margin-left:auto}
+.ord-detail{font-size:11px;color:var(--mu);margin-bottom:5px;line-height:1.7}
+.ord-detail span{color:var(--tx);font-weight:600}
+.ord-tpsl{font-size:10px;margin-bottom:5px;display:flex;gap:8px}
+.cancel-btn{padding:2px 10px;border:1px solid var(--rd);color:var(--rd);background:none;border-radius:3px;cursor:pointer;font-size:10px}
+.cancel-btn:hover{background:var(--rd);color:#fff}
+/* Pct buttons */
+.pct-btn{flex:1;padding:3px;background:var(--bd);color:var(--mu);border:none;border-radius:3px;cursor:pointer;font-size:10px}
+.pct-btn:hover{background:var(--ac);color:#fff}
+/* History filter */
+.hist-filter-btn{padding:3px 8px;border-radius:3px;border:1px solid var(--bd);background:none;color:var(--mu);cursor:pointer;font-size:11px}
+.hist-filter-btn.active{background:#1f6feb22;border-color:var(--ac);color:var(--ac)}
 /* Main layout */
 .layout{display:flex;flex:1;overflow:hidden}
 /* Draw toolbar */
@@ -290,29 +328,75 @@ input:focus,select:focus{border-color:var(--ac)}
   </div>
 
   <div class="panel">
-    <div class="tabs">
-      <div class="tab active" onclick="switchTab('order',this)">下单</div>
-      <div class="tab" onclick="switchTab('book',this)">盘口</div>
-      <div class="tab" onclick="switchTab('trades',this)">成交</div>
-      <div class="tab" onclick="switchTab('account',this)">账户</div>
-      <div class="tab" onclick="switchTab('history',this)">记录</div>
+    <!-- 6 tabs, scrollable -->
+    <div class="tabs" style="overflow-x:auto;flex-shrink:0;display:flex">
+      <div class="tab active" style="white-space:nowrap" onclick="switchTab('order',this)">下单</div>
+      <div class="tab" style="white-space:nowrap" onclick="switchTab('pos',this)">仓位</div>
+      <div class="tab" style="white-space:nowrap" onclick="switchTab('curord',this)">当前委托</div>
+      <div class="tab" style="white-space:nowrap" onclick="switchTab('histord',this)">历史委托</div>
+      <div class="tab" style="white-space:nowrap" onclick="switchTab('book',this)">盘口</div>
+      <div class="tab" style="white-space:nowrap" onclick="switchTab('trades',this)">成交</div>
     </div>
+
+    <!-- 下单 -->
     <div class="tab-body" id="pane-order">
       <div class="fg"><label>类型</label>
         <select id="oType" onchange="togglePF()">
           <option value="limit">限价单</option>
           <option value="market">市价单</option>
+          <option value="stop_limit">止损限价</option>
         </select></div>
-      <div class="fg" id="priceField"><label>价格</label><input id="oPrice" type="number" placeholder="挂单价" step="0.01"></div>
-      <div class="fg"><label>数量</label><input id="oSize" type="number" placeholder="0.001" step="0.001"></div>
-      <div class="fg"><label>止盈（可选）</label><input id="oTp" type="number" placeholder="触达自动平仓" step="0.01"></div>
-      <div class="fg"><label>止损（可选）</label><input id="oSl" type="number" placeholder="触达止损" step="0.01"></div>
-      <div class="btn-row">
-        <button class="btn btn-buy"  onclick="placeOrder('buy')">买/做多</button>
-        <button class="btn btn-sell" onclick="placeOrder('sell')">卖/做空</button>
+      <div class="fg" id="priceField"><label>价格 <span id="priceCur" style="color:var(--mu);font-size:10px"></span></label>
+        <input id="oPrice" type="number" placeholder="挂单价" step="0.01"></div>
+      <div class="fg" id="trigField" style="display:none"><label>触发价</label>
+        <input id="oTrigger" type="number" placeholder="触发价格" step="0.01"></div>
+      <div class="fg">
+        <label>数量 <span style="color:var(--mu);font-size:10px" id="sizeNote"></span></label>
+        <input id="oSize" type="number" placeholder="0.001" step="0.001" oninput="updateSizeNote()">
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <button class="pct-btn" onclick="setPct(0.25)">25%</button>
+          <button class="pct-btn" onclick="setPct(0.5)">50%</button>
+          <button class="pct-btn" onclick="setPct(0.75)">75%</button>
+          <button class="pct-btn" onclick="setPct(1)">全仓</button>
+        </div>
       </div>
-      <button class="btn-sm" onclick="resetAccount()">⚠ 重置账户</button>
+      <div class="fg"><label>止盈触发价</label><input id="oTp" type="number" placeholder="选填" step="0.01"></div>
+      <div class="fg"><label>止损触发价</label><input id="oSl" type="number" placeholder="选填" step="0.01"></div>
+      <div class="btn-row">
+        <button class="btn btn-buy"  onclick="placeOrder('buy')">买入/做多</button>
+        <button class="btn btn-sell" onclick="placeOrder('sell')">卖出/做空</button>
+      </div>
+      <div style="margin-top:8px;padding:8px;background:var(--bg);border-radius:6px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;color:var(--mu)"><span>可用余额</span><span id="avail-bal" style="color:var(--tx)">--</span></div>
+        <div style="display:flex;justify-content:space-between;color:var(--mu);margin-top:3px"><span>预估手续费</span><span id="est-fee" style="color:var(--tx)">--</span></div>
+      </div>
+      <button class="btn-sm" onclick="resetAccount()">⚠ 重置账户 ($100,000)</button>
     </div>
+
+    <!-- 仓位 -->
+    <div class="tab-body" id="pane-pos" style="display:none;padding:0">
+      <div id="acc-summary"></div>
+      <div id="pos-list"></div>
+    </div>
+
+    <!-- 当前委托 -->
+    <div class="tab-body" id="pane-curord" style="display:none;padding:0">
+      <div style="display:flex;justify-content:flex-end;padding:6px 10px;border-bottom:1px solid var(--bd)">
+        <button onclick="cancelAllOrders()" style="font-size:11px;color:var(--rd);background:none;border:1px solid var(--rd);border-radius:4px;padding:2px 8px;cursor:pointer">撤销全部</button>
+      </div>
+      <div id="cur-ord-list"></div>
+    </div>
+
+    <!-- 历史委托 -->
+    <div class="tab-body" id="pane-histord" style="display:none;padding:0">
+      <div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--bd)">
+        <button class="hist-filter-btn active" data-f="all"   onclick="setHistFilter('all',this)">全部</button>
+        <button class="hist-filter-btn"        data-f="filled" onclick="setHistFilter('filled',this)">已成交</button>
+        <button class="hist-filter-btn"        data-f="cancelled" onclick="setHistFilter('cancelled',this)">已撤销</button>
+      </div>
+      <div id="hist-ord-list"></div>
+    </div>
+
     <!-- 盘口 -->
     <div class="tab-body" id="pane-book" style="display:none;padding:6px 8px">
       <div class="book-hdr"><span>价格</span><span>数量</span><span style="text-align:right">成交额</span></div>
@@ -320,22 +404,18 @@ input:focus,select:focus{border-color:var(--ac)}
       <div class="book-mid-price" id="book-mid-price">--</div>
       <div id="book-bids"></div>
     </div>
-    <!-- 成交 -->
+
+    <!-- 成交流 -->
     <div class="tab-body" id="pane-trades" style="display:none;padding:6px 8px">
       <div class="trade-hdr"><span>价格</span><span>数量</span><span>时间</span></div>
       <div id="trades-list"><div class="empty">等待成交数据...</div></div>
     </div>
-    <div class="tab-body" id="pane-account" style="display:none">
-      <div id="equity-wrap">
-        <div class="equity-stats"><span>资金曲线</span><span id="equity-range-lbl"></span></div>
-        <canvas id="equity-canvas" height="80"></canvas>
-      </div>
-      <div class="stat-grid" id="statGrid"></div>
-      <div class="sec-t">持仓</div><div id="posDiv"></div>
-      <div class="sec-t">挂单</div><div id="ordDiv"></div>
-    </div>
-    <div class="tab-body" id="pane-history" style="display:none">
-      <div id="histDiv"></div>
+
+    <!-- hidden compat: equity canvas kept for share card -->
+    <div style="display:none">
+      <canvas id="equity-canvas" height="80"></canvas>
+      <span id="equity-range-lbl"></span>
+      <div id="statGrid"></div><div id="posDiv"></div><div id="ordDiv"></div><div id="histDiv"></div>
     </div>
   </div>
 </div>
@@ -959,13 +1039,18 @@ function checkOrders(sym,price,high,low){
     if(o.sl){const sl=o.sl;if((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)){const co={...o,side:o.side==='buy'?'sell':'buy',price:sl,type:'market',tp:null,sl:null};toFill.push({o:co,fp:asl(sl,co.side,o.size),fee:TAKER_FEE,closeOf:o.id});}}
   }
   for(const{o,fp,fee,closeOf}of toFill){fillOrder(acc,o,fp,fee);if(closeOf)acc.orders=acc.orders.filter(x=>x.id!==closeOf);changed=true;toast(`${o.side==='buy'?'✅买入':'🔴卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);}
-  if(changed){saveAccount(acc);if(activeTab==='account')renderAccount();}
+  if(changed){
+    saveAccount(acc);
+    if(activeTab==='pos') renderPositions();
+    if(activeTab==='curord') renderOpenOrders();
+    if(activeTab==='histord') renderHistOrders();
+  }
 }
 function fillOrder(acc,o,fp,fr){
   const cost=fp*o.size,fee=cost*fr,sym=o.symbol;
   if(o.side==='buy'){acc.balance-=cost+fee;if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'long'};const p=acc.positions[sym];const tot=p.size+o.size;p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='long';}
   else{if(acc.positions[sym]?.size>0){const p=acc.positions[sym];acc.balance+=fp*o.size-fee+(fp-p.entryPrice)*o.size;p.size-=o.size;if(p.size<1e-6)delete acc.positions[sym];}else{acc.balance-=fee;if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'short'};const p=acc.positions[sym];const tot=p.size+o.size;p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='short';}}
-  acc.history.push({symbol:sym,side:o.side,size:o.size,fillPrice:fp,fee,time:Date.now()});
+  acc.history.push({symbol:sym,side:o.side,type:o.type||'market',price:o.price||fp,size:o.size,fillPrice:fp,fee,time:Date.now(),status:'filled'});
   acc.orders=acc.orders.filter(x=>x.id!==o.id);
 }
 function getAccount(){try{return JSON.parse(localStorage.getItem('account'))||mk();}catch{return mk();}}
@@ -975,17 +1060,189 @@ function saveAccount(a){localStorage.setItem('account',JSON.stringify(a));}
 // ════════════════════════════════════════════════════════
 // ORDER UI
 // ════════════════════════════════════════════════════════
-function togglePF(){document.getElementById('priceField').style.display=document.getElementById('oType').value==='market'?'none':'';}
+let histFilter='all';
+function setHistFilter(f,el){histFilter=f;document.querySelectorAll('.hist-filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderHistOrders();}
+
+function togglePF(){
+  const t=document.getElementById('oType').value;
+  document.getElementById('priceField').style.display=t==='market'?'none':'';
+  document.getElementById('trigField').style.display=t==='stop_limit'?'':'none';
+  updateOrderFormInfo();
+}
+
+function updateOrderFormInfo(){
+  const acc=getAccount();
+  document.getElementById('avail-bal').textContent='$'+acc.balance.toFixed(2);
+  const size=+document.getElementById('oSize').value||0,p=prices[curSym]||0;
+  const fee=size*p*(document.getElementById('oType').value==='market'?TAKER_FEE:MAKER_FEE);
+  document.getElementById('est-fee').textContent=size?'$'+fee.toFixed(4):'--';
+  document.getElementById('priceCur').textContent=p?'当前 $'+p.toLocaleString('en',{minimumFractionDigits:2}):'';
+}
+function updateSizeNote(){
+  const size=+document.getElementById('oSize').value||0,p=prices[curSym]||0;
+  document.getElementById('sizeNote').textContent=size&&p?'≈ $'+(size*p).toFixed(2):'';
+  updateOrderFormInfo();
+}
+function setPct(pct){
+  const acc=getAccount(),p=prices[curSym]||0;
+  if(!p) return;
+  const size=Math.floor(acc.balance*pct/p*1000)/1000;
+  document.getElementById('oSize').value=size||'';
+  updateSizeNote();
+}
+
 function placeOrder(side){
-  const type=document.getElementById('oType').value,price=+document.getElementById('oPrice').value||0,size=+document.getElementById('oSize').value;
+  const type=document.getElementById('oType').value;
+  const price=+document.getElementById('oPrice').value||0;
+  const trigger=+document.getElementById('oTrigger').value||0;
+  const size=+document.getElementById('oSize').value;
   const tp=+document.getElementById('oTp').value||null,sl=+document.getElementById('oSl').value||null;
   if(!size||size<=0){toast('请输入数量',1);return;}
   if(type==='limit'&&price<=0){toast('请输入价格',1);return;}
+  if(type==='stop_limit'&&(price<=0||trigger<=0)){toast('请填写触发价和限价',1);return;}
   const acc=getAccount();
-  const o={id:Date.now()+Math.random().toString(36).slice(2),symbol:curSym,side,type,price,size,tp,sl,time:Date.now()};
+  const o={id:Date.now()+Math.random().toString(36).slice(2),symbol:curSym,side,type,price,trigger,size,tp,sl,time:Date.now(),status:'open'};
   acc.orders.push(o);
-  if(type==='market'){const cur=prices[curSym];if(cur)fillOrder(acc,o,asl(cur,side,size),TAKER_FEE);}
-  saveAccount(acc);toast(`${side==='buy'?'买单':'卖单'} ✓`);document.getElementById('oSize').value='';
+  if(type==='market'){
+    const cur=prices[curSym];
+    if(cur){fillOrder(acc,o,asl(cur,side,size),TAKER_FEE);}
+  }
+  saveAccount(acc);
+  toast(`${side==='buy'?'🟢 买单':'🔴 卖单'} 已提交`);
+  document.getElementById('oSize').value='';
+  updateOrderFormInfo();
+  if(activeTab==='curord') renderOpenOrders();
+}
+
+// ── Positions ──────────────────────────────────────────
+function renderPositions(){
+  const acc=getAccount();
+  let totalPnl=0,totalVal=0;
+  const posKeys=Object.keys(acc.positions);
+  for(const[sym,pos]of Object.entries(acc.positions)){
+    const p=prices[sym]||0;
+    const pnl=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;
+    totalPnl+=pnl; totalVal+=pos.size*pos.entryPrice;
+  }
+  const equity=acc.balance+totalPnl;
+  const totalReturn=equity-100000,pct=(totalReturn/100000*100);
+  // Summary header
+  document.getElementById('acc-summary').innerHTML=`
+    <div class="acc-sum">
+      <div class="acc-sum-row"><span class="acc-sum-lbl">账户权益 (USDT)</span><span class="acc-sum-val">$${equity.toFixed(2)}</span></div>
+      <div class="acc-sum-row"><span class="acc-sum-lbl">可用余额</span><span class="acc-sum-val">$${acc.balance.toFixed(2)}</span></div>
+      <div class="acc-sum-row"><span class="acc-sum-lbl">持仓浮亏</span><span class="acc-sum-val ${totalPnl>=0?'pos':'neg'}">${totalPnl>=0?'+':''}$${totalPnl.toFixed(2)}</span></div>
+      <div class="acc-sum-row"><span class="acc-sum-lbl">累计收益</span><span class="acc-sum-val ${totalReturn>=0?'pos':'neg'}">${totalReturn>=0?'+':''}$${totalReturn.toFixed(2)} (${pct>=0?'+':''}${pct.toFixed(2)}%)</span></div>
+      <div id="equity-wrap" style="margin-top:6px"><div class="equity-stats"><span style="font-size:10px;color:var(--mu)">资金曲线</span><span id="equity-range-lbl" style="font-size:10px"></span></div><canvas id="equity-canvas" height="70" style="width:100%;border-radius:5px;background:var(--bg)"></canvas></div>
+    </div>`;
+  setTimeout(drawEquityCurve, 30);
+  // Position cards
+  if(!posKeys.length){document.getElementById('pos-list').innerHTML='<div class="empty" style="padding:20px">暂无持仓</div>';return;}
+  document.getElementById('pos-list').innerHTML=Object.entries(acc.positions).map(([sym,pos])=>{
+    const p=prices[sym]||0,pnl=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size,pnlPct=pnl/(pos.entryPrice*pos.size)*100;
+    const roiCol=pnl>=0?'var(--gn)':'var(--rd)';
+    return `<div class="pos-card">
+      <div class="pos-header">
+        <div class="pos-side-badge ${pos.side}">${pos.side==='long'?'多':'空'}</div>
+        <div class="pos-sym">${sym}</div>
+        <div style="margin-left:auto;font-size:12px;font-weight:700;color:${roiCol}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div>
+      </div>
+      <div class="pos-grid">
+        <div class="pos-kv"><span class="pos-lbl">持仓量</span><span>${pos.size.toFixed(5)}</span></div>
+        <div class="pos-kv"><span class="pos-lbl">开仓均价</span><span>$${fmtPrice(pos.entryPrice)}</span></div>
+        <div class="pos-kv"><span class="pos-lbl">当前价格</span><span>$${fmtPrice(p)}</span></div>
+        <div class="pos-kv"><span class="pos-lbl">持仓价值</span><span>$${(p*pos.size).toFixed(2)}</span></div>
+        <div class="pos-kv"><span class="pos-lbl">浮动盈亏</span><span style="color:${roiCol};font-weight:700">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span></div>
+        <div class="pos-kv"><span class="pos-lbl">收益率</span><span style="color:${roiCol};font-weight:700">${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}%</span></div>
+      </div>
+      <button class="pos-close-btn" onclick="closePosition('${sym}')">市价平仓</button>
+    </div>`;
+  }).join('');
+}
+
+function closePosition(sym){
+  const acc=getAccount(),pos=acc.positions[sym];if(!pos)return;
+  const closeSide=pos.side==='long'?'sell':'buy';
+  const o={id:Date.now(),symbol:sym,side:closeSide,type:'market',price:0,size:pos.size,tp:null,sl:null,time:Date.now(),status:'open'};
+  const fp=asl(prices[sym]||pos.entryPrice,closeSide,pos.size);
+  fillOrder(acc,o,fp,TAKER_FEE);
+  saveAccount(acc);renderPositions();
+  toast(`✅ 已平仓 ${sym} @ $${fp.toFixed(2)}`);
+}
+
+// ── Open Orders ─────────────────────────────────────────
+function renderOpenOrders(){
+  const acc=getAccount(),el=document.getElementById('cur-ord-list');
+  if(!acc.orders.length){el.innerHTML='<div class="empty" style="padding:20px">暂无委托</div>';return;}
+  el.innerHTML=acc.orders.map(o=>{
+    const typeMap={limit:'限价',market:'市价',stop_limit:'止损限价'};
+    const p=prices[o.symbol]||0;
+    const dist=p&&o.price?((o.price-p)/p*100) : 0;
+    return `<div class="ord-card">
+      <div class="ord-top">
+        <div class="ord-badge ${o.side}">${o.side==='buy'?'买入':'卖出'}</div>
+        <div class="ord-sym">${o.symbol}</div>
+        <div class="ord-type">${typeMap[o.type]||o.type}</div>
+        <div class="ord-time">${new Date(o.time).toLocaleTimeString('zh')}</div>
+      </div>
+      <div class="ord-detail">
+        价格 <span>${o.type==='market'?'市价':'$'+fmtPrice(o.price)}</span>　
+        数量 <span>${o.size}</span>　
+        总额 <span>$${(o.price*o.size||0).toFixed(2)}</span>
+        ${o.price&&p?`<br>距当前价 <span style="color:${Math.abs(dist)<1?'var(--gn)':'var(--mu)'}">${dist>=0?'+':''}${dist.toFixed(2)}%</span>`:''}
+      </div>
+      ${(o.tp||o.sl)?`<div class="ord-tpsl">${o.tp?`<span style="color:var(--gn)">TP $${fmtPrice(o.tp)}</span>`:''}${o.sl?`<span style="color:var(--rd)">SL $${fmtPrice(o.sl)}</span>`:''}</div>`:''}
+      <button class="cancel-btn" onclick="cancelOrder('${o.id}')">撤单</button>
+    </div>`;
+  }).join('');
+}
+
+function cancelAllOrders(){
+  if(!confirm('确认撤销所有委托？')) return;
+  const acc=getAccount();
+  acc.orders.forEach(o=>acc.history.push({...o,status:'cancelled',fillPrice:0,fee:0,cancelTime:Date.now()}));
+  acc.orders=[];
+  saveAccount(acc);renderOpenOrders();toast('全部委托已撤销');
+}
+
+// ── History Orders ──────────────────────────────────────
+function renderHistOrders(){
+  const acc=getAccount(),el=document.getElementById('hist-ord-list');
+  let items=[...acc.history];
+  if(histFilter==='filled') items=items.filter(h=>h.status!=='cancelled');
+  if(histFilter==='cancelled') items=items.filter(h=>h.status==='cancelled');
+  items=items.slice().reverse().slice(0,100);
+  if(!items.length){el.innerHTML='<div class="empty" style="padding:20px">暂无记录</div>';return;}
+  el.innerHTML=items.map(h=>{
+    const isCancelled=h.status==='cancelled';
+    const typeMap={limit:'限价',market:'市价',stop_limit:'止损限价'};
+    const t=new Date(h.cancelTime||h.time);
+    const dateStr=t.toLocaleDateString('zh',{month:'2-digit',day:'2-digit'})+' '+t.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return `<div class="ord-card">
+      <div class="ord-top">
+        <div class="ord-badge ${isCancelled?'cancelled':(h.side||'buy')}">${isCancelled?'已撤销':h.side==='buy'?'买入':'卖出'}</div>
+        <div class="ord-badge filled" style="margin-left:0">${isCancelled?'撤单':'已成交'}</div>
+        <div class="ord-sym">${h.symbol}</div>
+        <div class="ord-type">${typeMap[h.type]||'市价'}</div>
+        <div class="ord-time">${dateStr}</div>
+      </div>
+      <div class="ord-detail">
+        ${isCancelled
+          ? `委托价 <span>$${fmtPrice(h.price)}</span>　数量 <span>${h.size}</span>`
+          : `成交价 <span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">$${fmtPrice(h.fillPrice)}</span>　数量 <span>${h.size}</span>　总额 <span>$${(h.fillPrice*h.size).toFixed(2)}</span><br>手续费 <span style="color:var(--rd)">-$${(h.fee||0).toFixed(4)}</span>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAccount(){
+  drawEquityCurve();
+  const acc=getAccount();let pnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
+  document.getElementById('statGrid').innerHTML=`<div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div><div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div><div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div><div class="stat"><div class="lbl">初始资金</div><div class="val">$100,000</div></div>`;
+  document.getElementById('posDiv').innerHTML=Object.keys(acc.positions).length?Object.entries(acc.positions).map(([sym,pos])=>{const p=prices[sym]||0,pnl2=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;return`<div class="pos-row"><b style="color:var(--ac)">${sym}</b><span style="color:var(--mu);margin:0 3px">${pos.side.toUpperCase()}</span>${pos.size.toFixed(4)}@$${pos.entryPrice.toFixed(2)}<span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`}).join(''):'<div class="empty">暂无持仓</div>';
+  document.getElementById('ordDiv').innerHTML=acc.orders.length?acc.orders.map(o=>`<div class="ord-row"><div><span style="color:${o.side==='buy'?'var(--gn)':'var(--rd)'}"><b>${o.side==='buy'?'买':'卖'}</b></span><span style="color:var(--mu);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}${o.tp?`<span style="color:var(--gn);font-size:9px"> TP:${o.tp}</span>`:''}${o.sl?`<span style="color:var(--rd);font-size:9px"> SL:${o.sl}</span>`:''}</div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join(''):'<div class="empty">暂无挂单</div>';
 }
 function renderAccount(){
   drawEquityCurve();
@@ -995,26 +1252,43 @@ function renderAccount(){
   document.getElementById('posDiv').innerHTML=Object.keys(acc.positions).length?Object.entries(acc.positions).map(([sym,pos])=>{const p=prices[sym]||0,pnl2=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;return`<div class="pos-row"><b style="color:var(--ac)">${sym}</b><span style="color:var(--mu);margin:0 3px">${pos.side.toUpperCase()}</span>${pos.size.toFixed(4)}@$${pos.entryPrice.toFixed(2)}<span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`}).join(''):'<div class="empty">暂无持仓</div>';
   document.getElementById('ordDiv').innerHTML=acc.orders.length?acc.orders.map(o=>`<div class="ord-row"><div><span style="color:${o.side==='buy'?'var(--gn)':'var(--rd)'}"><b>${o.side==='buy'?'买':'卖'}</b></span><span style="color:var(--mu);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}${o.tp?`<span style="color:var(--gn);font-size:9px"> TP:${o.tp}</span>`:''}${o.sl?`<span style="color:var(--rd);font-size:9px"> SL:${o.sl}</span>`:''}</div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join(''):'<div class="empty">暂无挂单</div>';
 }
-function cancelOrder(id){const acc=getAccount();acc.orders=acc.orders.filter(o=>o.id!==id);saveAccount(acc);renderAccount();toast('订单已撤销');}
+function cancelOrder(id){
+  const acc=getAccount();
+  const o=acc.orders.find(x=>x.id===id);
+  if(o) acc.history.push({...o,status:'cancelled',fillPrice:0,fee:0,cancelTime:Date.now()});
+  acc.orders=acc.orders.filter(x=>x.id!==id);
+  saveAccount(acc);
+  if(activeTab==='curord') renderOpenOrders();
+  if(activeTab==='histord') renderHistOrders();
+  if(activeTab==='pos') renderPositions();
+  toast('撤单成功');
+}
 function resetAccount(){if(!confirm('确认重置？所有数据清空'))return;localStorage.removeItem('account');toast('账户已重置');renderAccount();}
 function renderHistory(){
   const acc=getAccount(),el=document.getElementById('histDiv');
   if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
   el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
 }
+const ALL_PANES=['order','pos','curord','histord','book','trades'];
 function switchTab(name,el){
   activeTab=name;
-  ['order','book','trades','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');
+  ALL_PANES.forEach(t=>{const p=document.getElementById('pane-'+t);if(p)p.style.display=t===name?'':'none';});
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  if(name==='account') renderAccount();
-  if(name==='history') renderHistory();
+  if(name==='pos')     renderPositions();
+  if(name==='curord')  renderOpenOrders();
+  if(name==='histord') renderHistOrders();
   if(name==='book'){renderOrderBook();renderBookMidPrice();}
-  if(name==='trades') renderTrades();
+  if(name==='trades')  renderTrades();
+  if(name==='order')   updateOrderFormInfo();
 }
 let toastTimer;
 function toast(msg,isErr=0){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isErr?'#da3633':'#1f6feb';el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2500);}
-setInterval(()=>{if(activeTab==='account')renderAccount();},3000);
+setInterval(()=>{
+  if(activeTab==='pos') renderPositions();
+  if(activeTab==='curord') renderOpenOrders();
+  if(activeTab==='order') updateOrderFormInfo();
+},3000);
 
 // ════════════════════════════════════════════════════════
 // OHLCV INFO BAR
