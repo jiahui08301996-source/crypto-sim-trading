@@ -267,6 +267,43 @@ input:focus,select:focus{border-color:var(--ac)}
 .ma-row input[type=color]{padding:0;width:28px;height:22px;cursor:pointer;border:none;background:none}
 .popup-btn{padding:4px 12px;border:none;border-radius:4px;cursor:pointer;font-size:11px}
 .popup-ok{background:#1f6feb;color:#fff}.popup-cl{background:var(--bd);color:var(--mu)}
+
+/* ── TP/SL Modals ──────────────────────────────────────────────── */
+.tpsl-overlay{position:fixed;inset:0;background:#00000088;z-index:9000;display:flex;align-items:center;justify-content:center}
+.tpsl-box{background:#1e2026;border-radius:8px;width:480px;max-width:96vw;color:#eaecef;font-size:13px;box-shadow:0 8px 40px #000a}
+.tpsl-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid #2b2f36}
+.tpsl-hdr h3{margin:0;font-size:15px;font-weight:600}
+.tpsl-close{background:none;border:none;color:#848e9c;font-size:20px;cursor:pointer;line-height:1;padding:0}
+.tpsl-close:hover{color:#eaecef}
+.tpsl-info{display:flex;gap:20px;padding:12px 20px;background:#161a1e;font-size:11px}
+.tpsl-info-item{display:flex;flex-direction:column;gap:2px}
+.tpsl-info-lbl{color:#848e9c}
+.tpsl-info-val{color:#f0b90b;font-weight:600}
+.tpsl-info-val.normal{color:#eaecef}
+.tpsl-tabs{display:flex;border-bottom:1px solid #2b2f36;padding:0 20px}
+.tpsl-tab{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:#848e9c;cursor:pointer;font-size:13px}
+.tpsl-tab.active{color:#f0b90b;border-bottom-color:#f0b90b;font-weight:600}
+.tpsl-body{padding:16px 20px}
+.tpsl-section{margin-bottom:14px}
+.tpsl-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;font-weight:600;color:#eaecef}
+.tpsl-section-title label{display:flex;align-items:center;gap:5px;color:#848e9c;font-weight:400;font-size:11px;cursor:pointer}
+.tpsl-row{display:flex;gap:8px;margin-bottom:6px}
+.tpsl-input-wrap{flex:1;position:relative}
+.tpsl-input{width:100%;background:#2b2f36;border:1px solid #474d57;border-radius:4px;color:#eaecef;font-size:12px;padding:8px 10px;box-sizing:border-box}
+.tpsl-input:focus{outline:none;border-color:#f0b90b}
+.tpsl-select{background:#2b2f36;border:1px solid #474d57;border-radius:4px;color:#848e9c;font-size:11px;padding:8px 10px;cursor:pointer}
+.tpsl-hint{font-size:11px;color:#848e9c;margin-bottom:10px;line-height:1.5}
+.tpsl-hint b{color:#0ecb81}
+.tpsl-hint.loss b{color:#f6465d}
+.tpsl-qty-row{display:flex;align-items:center;justify-content:space-between;margin:10px 0 4px}
+.tpsl-qty-label{font-size:12px;color:#848e9c}
+.tpsl-qty-val{font-size:12px;color:#eaecef}
+.tpsl-slider{width:100%;accent-color:#f0b90b;height:3px;margin:4px 0 8px}
+.tpsl-qty-total{text-align:right;font-size:12px;color:#848e9c;margin-bottom:14px}
+.tpsl-confirm{width:100%;padding:12px;background:#2b2f36;border:none;border-radius:4px;color:#eaecef;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;transition:background .15s}
+.tpsl-confirm:hover{background:#f0b90b;color:#000}
+.tpsl-cancel-link{color:#f6465d;font-size:12px;cursor:pointer;margin-left:auto}
+.tpsl-cancel-link:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -508,6 +545,139 @@ input:focus,select:focus{border-color:var(--ac)}
         <th>时间</th><th>交易对</th><th>方向</th><th>数量</th><th>成交价</th><th>总额</th><th>手续费</th>
       </tr></thead>
       <tbody id="histtrd-tbody"><tr class="empty-row"><td colspan="7">暂无成交</td></tr></tbody></table>
+    </div>
+  </div>
+</div>
+
+
+<!-- TP/SL Modal (图1: per-order) -->
+<div id="tpsl-modal" class="tpsl-overlay" style="display:none" onclick="if(event.target===this)closeTpslModal()">
+  <div class="tpsl-box">
+    <div class="tpsl-hdr">
+      <h3>止盈/止损</h3>
+      <button class="tpsl-close" onclick="closeTpslModal()">&#10005;</button>
+    </div>
+    <div class="tpsl-info" id="tpsl-info"></div>
+    <div class="tpsl-tabs">
+      <button class="tpsl-tab active" onclick="tpslSwitchMode('partial',this)">部分平仓</button>
+      <button class="tpsl-tab" onclick="tpslSwitchMode('full',this)">全部平仓</button>
+    </div>
+    <div class="tpsl-body">
+      <!-- TP -->
+      <div class="tpsl-section">
+        <div class="tpsl-section-title">
+          <span>止盈</span>
+          <label><input type="checkbox" id="tpsl-tp-limit"> 限价订单</label>
+        </div>
+        <div class="tpsl-row">
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="tpsl-tp-price" type="number" placeholder="触发价格" oninput="tpslCalcHint('tp')">
+          </div>
+          <select class="tpsl-select" id="tpsl-tp-ref" onchange="tpslCalcHint('tp')">
+            <option value="last">最新</option>
+            <option value="mark">标记</option>
+            <option value="index">指数</option>
+          </select>
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="tpsl-tp-pnl" type="number" placeholder="盈亏" readonly style="color:#0ecb81">
+          </div>
+          <select class="tpsl-select">
+            <option>PnL (USDT)</option>
+          </select>
+        </div>
+        <div class="tpsl-hint" id="tpsl-tp-hint">当最新价格达到 -- USDT 时，将触发<b>市价订单</b>，预计盈亏将为 -- USDT</div>
+      </div>
+      <!-- SL -->
+      <div class="tpsl-section">
+        <div class="tpsl-section-title">
+          <span>止损</span>
+          <label><input type="checkbox" id="tpsl-sl-limit"> 限价订单</label>
+        </div>
+        <div class="tpsl-row">
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="tpsl-sl-price" type="number" placeholder="触发价格" oninput="tpslCalcHint('sl')">
+          </div>
+          <select class="tpsl-select" id="tpsl-sl-ref" onchange="tpslCalcHint('sl')">
+            <option value="last">最新</option>
+            <option value="mark">标记</option>
+            <option value="index">指数</option>
+          </select>
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="tpsl-sl-pnl" type="number" placeholder="盈亏" readonly style="color:#f6465d">
+          </div>
+          <select class="tpsl-select">
+            <option>PnL (USDT)</option>
+          </select>
+        </div>
+        <div class="tpsl-hint loss" id="tpsl-sl-hint">当最新价格达到 -- USDT 时，将触发<b>市价订单</b>，预计盈亏将为 -- USDT</div>
+      </div>
+      <!-- Qty -->
+      <div id="tpsl-qty-section">
+        <div class="tpsl-qty-row">
+          <span class="tpsl-qty-label">数量</span>
+          <span class="tpsl-qty-val" id="tpsl-qty-display">--</span>
+        </div>
+        <input type="range" class="tpsl-slider" id="tpsl-qty-slider" min="0" max="100" value="100" oninput="tpslQtySlide(this.value)">
+        <div class="tpsl-qty-total">持仓数量 <span id="tpsl-qty-total">--</span></div>
+      </div>
+      <button class="tpsl-confirm" onclick="confirmTpsl()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- Position TP/SL Modal (图2: per-position full) -->
+<div id="pos-tpsl-modal" class="tpsl-overlay" style="display:none" onclick="if(event.target===this)closePTpslModal()">
+  <div class="tpsl-box">
+    <div class="tpsl-hdr">
+      <h3>止盈/止损</h3>
+      <button class="tpsl-close" onclick="closePTpslModal()">&#10005;</button>
+    </div>
+    <div class="tpsl-info" id="ptpsl-info"></div>
+    <div class="tpsl-tabs" style="justify-content:space-between;align-items:center">
+      <div style="display:flex">
+        <button class="tpsl-tab" onclick="ptpslSwitchMode('partial',this)">部分平仓</button>
+        <button class="tpsl-tab active" onclick="ptpslSwitchMode('full',this)">全部平仓</button>
+      </div>
+      <span class="tpsl-cancel-link" id="ptpsl-cancel-link" onclick="cancelPosTpsl()" style="display:none">取消订单</span>
+    </div>
+    <div class="tpsl-body">
+      <!-- TP -->
+      <div class="tpsl-section">
+        <div class="tpsl-section-title"><span>止盈价格</span></div>
+        <div class="tpsl-row">
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="ptpsl-tp-price" type="number" placeholder="触发价格" oninput="ptpslCalcHint('tp')">
+          </div>
+          <select class="tpsl-select" id="ptpsl-tp-ref" onchange="ptpslCalcHint('tp')">
+            <option value="mark">标记</option>
+            <option value="last">最新</option>
+          </select>
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="ptpsl-tp-pnl" type="number" placeholder="收益" readonly style="color:#0ecb81">
+          </div>
+          <select class="tpsl-select"><option>盈亏 (USDT)</option></select>
+        </div>
+        <div class="tpsl-hint" id="ptpsl-tp-hint">当价格达到 -- USDT 时，市价单将被触发。预期利润为 -- USDT。</div>
+      </div>
+      <!-- SL -->
+      <div class="tpsl-section">
+        <div class="tpsl-section-title"><span>止损价格</span></div>
+        <div class="tpsl-row">
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="ptpsl-sl-price" type="number" placeholder="触发价格" oninput="ptpslCalcHint('sl')">
+          </div>
+          <select class="tpsl-select" id="ptpsl-sl-ref" onchange="ptpslCalcHint('sl')">
+            <option value="mark">标记</option>
+            <option value="last">最新</option>
+          </select>
+          <div class="tpsl-input-wrap">
+            <input class="tpsl-input" id="ptpsl-sl-pnl" type="number" placeholder="损失" readonly style="color:#f6465d">
+          </div>
+          <select class="tpsl-select"><option>盈亏 (USDT)</option></select>
+        </div>
+        <div class="tpsl-hint loss" id="ptpsl-sl-hint">当价格达到 -- USDT 时，市价单将被触发。预期利润为 -- USDT。</div>
+      </div>
+      <button class="tpsl-confirm" style="background:#f0b90b;color:#000" onclick="confirmPTpsl()">确认</button>
     </div>
   </div>
 </div>
@@ -1259,9 +1429,9 @@ function renderPositions() {
       <td style="color:#f6465d">$${fmtPrice(liq)}</td>
       <td><div class="${pc2}">${pnl>=0?'+':''}${pnl.toFixed(4)} USDT</div>
           <div class="${pc2}" style="font-size:11px">${roe>=0?'+':''}${roe.toFixed(2)}%</div></td>
-      <td><button class="add-tpsl" onclick="showTpslTip()">添加 &#10753;</button></td>
-      <td><button class="add-tpsl" onclick="showTpslTip()">添加 &#10753;</button></td>
-      <td><button class="rev-btn" onclick="placeReverseOrder('${sym}','${pos.side}',${pos.size})">反向订单</button></td>
+      <td><button class="add-tpsl" onclick="openTpslModal('${sym}')">添加 &#10753;</button></td>
+      <td><button class="add-tpsl" onclick="openPTpslModal('${sym}')">添加 &#10753;</button></td>
+      <td><button class="rev-btn" onclick="placeReverseOrder('${sym}','${pos.side}',${pos.size})">反向《市价》</button></td>
       <td style="white-space:nowrap">
         <button class="close-mp" onclick="closePosition('${sym}')">市价</button>
         <button class="close-lp" onclick="openCloseLimitDialog('${sym}','${pos.side}',${pos.size})">限价</button>
@@ -2111,6 +2281,173 @@ async function nativeShare(){
 // ════════════════════════════════════════════════════════
 // Do NOT auto-init charts — wait for startWith()
 // (charts are initialized inside startWith after preload)
+
+// ── TP/SL Modal state (fees already defined as MAKER_FEE/TAKER_FEE) ───
+let _tpslSym = null, _tpslMode = 'partial';
+let _ptpslSym = null, _ptpslMode = 'full';
+
+function _tpslInfoHTML(sym) {
+  const pos = getAccount().positions[sym]; if (!pos) return '';
+  const p = prices[sym] || pos.entryPrice;
+  const lev = pos.leverage || globalLeverage;
+  const liq = calcLiqPrice(pos.entryPrice, pos.side, lev);
+  return `<div class="tpsl-info-item"><span class="tpsl-info-lbl">\u5408\u7ea6</span><span class="tpsl-info-val">${sym} ${lev}x</span></div>` +
+    `<div class="tpsl-info-item"><span class="tpsl-info-lbl">\u5165\u573a\u4ef7\u683c</span><span class="tpsl-info-val normal">$${fmtPrice(pos.entryPrice)} USDT</span></div>` +
+    `<div class="tpsl-info-item"><span class="tpsl-info-lbl">\u6807\u8bb0\u4ef7\u683c</span><span class="tpsl-info-val normal">$${fmtPrice(p)} USDT</span></div>` +
+    `<div class="tpsl-info-item"><span class="tpsl-info-lbl">\u9884\u4f30\u6e05\u7b97\u4ef7\u683c</span><span class="tpsl-info-val normal">$${fmtPrice(liq)} USDT</span></div>`;
+}
+
+function _calcPnl(sym, trigPrice, size) {
+  const pos = getAccount().positions[sym]; if (!pos || !trigPrice || !size) return null;
+  const pnl = pos.side === 'long' ? (trigPrice - pos.entryPrice) * size
+                                  : (pos.entryPrice - trigPrice) * size;
+  return pnl;
+}
+
+// ── Modal 1: per-order TP/SL ──────────────────────────────────────────
+function openTpslModal(sym) {
+  _tpslSym = sym;
+  const pos = getAccount().positions[sym]; if (!pos) return;
+  document.getElementById('tpsl-info').innerHTML = _tpslInfoHTML(sym);
+  document.getElementById('tpsl-tp-price').value = '';
+  document.getElementById('tpsl-sl-price').value = '';
+  document.getElementById('tpsl-tp-pnl').value = '';
+  document.getElementById('tpsl-sl-pnl').value = '';
+  document.getElementById('tpsl-tp-hint').innerHTML = '\u5f53\u6700\u65b0\u4ef7\u683c\u8fbe\u5230 -- USDT \u65f6\uff0c\u5c06\u89e6\u53d1<b>\u5e02\u4ef7\u8ba2\u5355</b>\uff0c\u9884\u8ba1\u76c8\u4e8f\u5c06\u4e3a -- USDT';
+  document.getElementById('tpsl-sl-hint').innerHTML = '\u5f53\u6700\u65b0\u4ef7\u683c\u8fbe\u5230 -- USDT \u65f6\uff0c\u5c06\u89e6\u53d1<b>\u5e02\u4ef7\u8ba2\u5355</b>\uff0c\u9884\u8ba1\u76c8\u4e8f\u5c06\u4e3a -- USDT';
+  document.getElementById('tpsl-qty-display').textContent = pos.size.toFixed(5) + ' USDT';
+  document.getElementById('tpsl-qty-total').textContent = pos.size.toFixed(5) + ' USDT';
+  document.getElementById('tpsl-qty-slider').value = 100;
+  _tpslMode = 'partial';
+  document.querySelectorAll('#tpsl-modal .tpsl-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  document.getElementById('tpsl-qty-section').style.display = '';
+  document.getElementById('tpsl-modal').style.display = 'flex';
+}
+function closeTpslModal() { document.getElementById('tpsl-modal').style.display = 'none'; }
+
+function tpslSwitchMode(mode, el) {
+  _tpslMode = mode;
+  document.querySelectorAll('#tpsl-modal .tpsl-tab').forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('tpsl-qty-section').style.display = mode === 'partial' ? '' : 'none';
+}
+
+function tpslQtySlide(val) {
+  const pos = getAccount().positions[_tpslSym]; if (!pos) return;
+  const qty = pos.size * val / 100;
+  document.getElementById('tpsl-qty-display').textContent = qty.toFixed(5) + ' USDT';
+}
+
+function tpslCalcHint(type) {
+  const pos = getAccount().positions[_tpslSym]; if (!pos) return;
+  const slider = document.getElementById('tpsl-qty-slider');
+  const size = pos.size * (slider ? +slider.value/100 : 1);
+  const priceEl = document.getElementById('tpsl-' + type + '-price');
+  const pnlEl   = document.getElementById('tpsl-' + type + '-pnl');
+  const hintEl  = document.getElementById('tpsl-' + type + '-hint');
+  const tp = +priceEl.value;
+  if (!tp) { pnlEl.value = ''; return; }
+  const pnl = _calcPnl(_tpslSym, tp, size);
+  if (pnl === null) return;
+  pnlEl.value = pnl.toFixed(4);
+  const dir = type === 'tp' ? '\u76c8\u4e8f' : '\u76c8\u4e8f';
+  const tag = type === 'tp' ? '\u5e02\u4ef7\u8ba2\u5355' : '\u5e02\u4ef7\u8ba2\u5355';
+  hintEl.innerHTML = `\u5f53\u6700\u65b0\u4ef7\u683c\u8fbe\u5230 <b>$${fmtPrice(tp)}</b> USDT \u65f6\uff0c\u5c06\u89e6\u53d1<b>${tag}</b>\uff0c\u9884\u8ba1${dir}\u5c06\u4e3a <b>${pnl>=0?'+':''}${pnl.toFixed(4)}</b> USDT`;
+}
+
+function confirmTpsl() {
+  const pos = getAccount().positions[_tpslSym]; if (!pos) return;
+  const slider = document.getElementById('tpsl-qty-slider');
+  const size = _tpslMode === 'full' ? pos.size : pos.size * (+slider.value/100);
+  const tp = +document.getElementById('tpsl-tp-price').value || null;
+  const sl = +document.getElementById('tpsl-sl-price').value || null;
+  if (!tp && !sl) { toast('\u8bf7\u8f93\u5165\u6b62\u76c8\u6216\u6b62\u635f\u4ef7\u683c'); return; }
+  // Place conditional orders
+  const acc = getAccount();
+  if (tp) {
+    acc.orders.push({id:Date.now()+'tp',symbol:_tpslSym,side:pos.side==='long'?'sell':'buy',
+      type:'stop_limit',price:tp,trigger:tp,size,tp:null,sl:null,time:Date.now(),status:'open',leverage:pos.leverage||globalLeverage,note:'TP'});
+  }
+  if (sl) {
+    acc.orders.push({id:Date.now()+'sl',symbol:_tpslSym,side:pos.side==='long'?'sell':'buy',
+      type:'stop_limit',price:sl,trigger:sl,size,tp:null,sl:null,time:Date.now(),status:'open',leverage:pos.leverage||globalLeverage,note:'SL'});
+  }
+  saveAccount(acc); updateBottomBadges(); renderOpenOrders();
+  toast((_tpslMode==='full'?'\u5168\u90e8':'\u90e8\u5206')+'\u6b62\u76c8\u6b62\u635f\u5df2\u8bbe\u7f6e');
+  closeTpslModal();
+}
+
+// ── Modal 2: per-position TP/SL ───────────────────────────────────────
+function openPTpslModal(sym) {
+  _ptpslSym = sym;
+  const pos = getAccount().positions[sym]; if (!pos) return;
+  document.getElementById('ptpsl-info').innerHTML = _tpslInfoHTML(sym);
+  document.getElementById('ptpsl-tp-price').value = pos.tp || '';
+  document.getElementById('ptpsl-sl-price').value = pos.sl || '';
+  document.getElementById('ptpsl-tp-pnl').value = '';
+  document.getElementById('ptpsl-sl-pnl').value = '';
+  document.getElementById('ptpsl-tp-hint').textContent = '\u5f53\u4ef7\u683c\u8fbe\u5230 -- USDT \u65f6\uff0c\u5e02\u4ef7\u5355\u5c06\u88ab\u89e6\u53d1\u3002\u9884\u671f\u5229\u6da6\u4e3a -- USDT\u3002';
+  document.getElementById('ptpsl-sl-hint').textContent = '\u5f53\u4ef7\u683c\u8fbe\u5230 -- USDT \u65f6\uff0c\u5e02\u4ef7\u5355\u5c06\u88ab\u89e6\u53d1\u3002\u9884\u671f\u5229\u6da6\u4e3a -- USDT\u3002';
+  const hasExisting = pos.tp || pos.sl;
+  document.getElementById('ptpsl-cancel-link').style.display = hasExisting ? '' : 'none';
+  _ptpslMode = 'full';
+  document.querySelectorAll('#pos-tpsl-modal .tpsl-tab').forEach((t,i)=>t.classList.toggle('active',i===1));
+  document.getElementById('pos-tpsl-modal').style.display = 'flex';
+  if (pos.tp) ptpslCalcHint('tp');
+  if (pos.sl) ptpslCalcHint('sl');
+}
+function closePTpslModal() { document.getElementById('pos-tpsl-modal').style.display = 'none'; }
+
+function ptpslSwitchMode(mode, el) {
+  _ptpslMode = mode;
+  document.querySelectorAll('#pos-tpsl-modal .tpsl-tab').forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function ptpslCalcHint(type) {
+  const pos = getAccount().positions[_ptpslSym]; if (!pos) return;
+  const priceEl = document.getElementById('ptpsl-' + type + '-price');
+  const pnlEl   = document.getElementById('ptpsl-' + type + '-pnl');
+  const hintEl  = document.getElementById('ptpsl-' + type + '-hint');
+  const tp = +priceEl.value;
+  if (!tp) { pnlEl.value = ''; return; }
+  const pnl = _calcPnl(_ptpslSym, tp, pos.size);
+  if (pnl === null) return;
+  pnlEl.value = pnl.toFixed(4);
+  hintEl.textContent = `\u5f53\u4ef7\u683c\u8fbe\u5230 $${fmtPrice(tp)} USDT \u65f6\uff0c\u5e02\u4ef7\u5355\u5c06\u88ab\u89e6\u53d1\u3002\u9884\u671f\u5229\u6da6\u4e3a ${pnl>=0?'+':''}${pnl.toFixed(4)} USDT\u3002`;
+}
+
+function confirmPTpsl() {
+  const acc = getAccount();
+  const pos = acc.positions[_ptpslSym]; if (!pos) return;
+  const tp = +document.getElementById('ptpsl-tp-price').value || null;
+  const sl = +document.getElementById('ptpsl-sl-price').value || null;
+  pos.tp = tp; pos.sl = sl;
+  saveAccount(acc); renderPositions();
+  toast('\u4ed3\u4f4d\u6b62\u76c8\u6b62\u635f\u5df2\u66f4\u65b0');
+  closePTpslModal();
+}
+
+function cancelPosTpsl() {
+  const acc = getAccount();
+  const pos = acc.positions[_ptpslSym]; if (!pos) return;
+  pos.tp = null; pos.sl = null;
+  saveAccount(acc); renderPositions();
+  toast('\u4ed3\u4f4d\u6b62\u76c8\u6b62\u635f\u5df2\u53d6\u6d88');
+  closePTpslModal();
+}
+
+// ── Fee display in order form ─────────────────────────────────────────
+function updateFeeDisplay() {
+  const sizeEl = document.getElementById('sizeInput') || document.getElementById('size-input');
+  const feeEl  = document.getElementById('fee-display');
+  if (!feeEl) return;
+  const size = sizeEl ? +sizeEl.value : 0;
+  const p = prices[curSym] || 0;
+  const fee = size * p * TAKER_FEE_RATE;
+  feeEl.textContent = fee > 0 ? '-$' + fee.toFixed(4) + ' USDT' : '--';
+}
+
 </script>
 </body>
 </html>
