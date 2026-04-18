@@ -1307,7 +1307,7 @@ function renderSymList(q){
     for(const sym of filtered){
       const p=prices[sym],chg=changes[sym];
       const isActive=sym===curSym&&modalExchange===curExchange;
-      const pStr=p!=null?'$'+p.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:4}):'--';
+      const pStr=p!=null?'$'+fmtPrice(p):'--';
       const chgVal=chg!=null?chg:0;
       const chgStr=chg!=null?(chgVal>=0?'+':'')+chgVal.toFixed(2)+'%':'--';
       const chgColor=chgVal>=0?'var(--gn)':'var(--rd)';
