@@ -823,9 +823,9 @@ let lazyLoadSym=null, lazyLoadTfMin=null;
 // ════════════════════════════════════════════════════════
 
 function createMainSeries(){
-  const u='#3fb950',d='#f85149';
-  if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
-  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'rgba(0,0,0,0)',downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d});
+  const u='#26c6da',d='#ef5350';
+  if(chartType==='candle') candleSeries=mainChart.addCandlestickSeries({upColor:u,downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d,borderVisible:true});
+  else if(chartType==='hollow') candleSeries=mainChart.addCandlestickSeries({upColor:'rgba(0,0,0,0)',downColor:d,borderUpColor:u,borderDownColor:d,wickUpColor:u,wickDownColor:d,borderVisible:true});
   else if(chartType==='bar') candleSeries=mainChart.addBarSeries({upColor:u,downColor:d});
   else if(chartType==='line') candleSeries=mainChart.addLineSeries({color:'#58a6ff',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
   else if(chartType==='area') candleSeries=mainChart.addAreaSeries({lineColor:'#58a6ff',topColor:'#58a6ff55',bottomColor:'#58a6ff00',lineWidth:2,priceLineVisible:false,lastValueVisible:false});
@@ -1441,7 +1441,7 @@ const CHART_TYPES=[
   {id:'line',   icon:'╱'},
   {id:'area',   icon:'◬'},
 ];
-let chartType='candle';
+let chartType='hollow';
 
 function buildCtrlBar(){
   const active=[...activeIndicators];
@@ -1455,7 +1455,7 @@ function buildCtrlBar(){
 }
 async function switchTf(min){
   curTfMin=min;buildCtrlBar();
-  mainChart.applyOptions({timeScale:{secondsVisible:min===1}});
+  mainChart.applyOptions({timeScale:{secondsVisible:min<2,timeVisible:true}});
   await loadKlines(curSym,min);connectWS();
 }
 
@@ -2184,7 +2184,7 @@ async function startWith(exId) {
   // Set exchange + default symbol
   curExchange = exId;
   curSym = Object.values(ex.categories).flat()[0];
-  curTfMin = 60;
+  curTfMin = 1;
   document.getElementById('symBtnText').textContent = ex.fmtDisplay(curSym);
   // Init charts
   initCharts();
