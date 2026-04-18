@@ -340,7 +340,7 @@ input:focus,select:focus{border-color:var(--ac)}
 </div>
 
 <header style="display:none" id="mainHeader">
-  <div class="logo">📈 模拟交易</div>
+  <div class="logo" style="color:#a259ff;font-weight:800;font-size:15px">XNdemo</div>
   <div class="ex-tabs"><span style="color:#a259ff;font-weight:700;font-size:13px">Aster DEX</span></div>
   <button id="symBtn" onclick="openSymModal()">
     <span id="symBtnText">BTC/USDC</span>
@@ -1082,7 +1082,7 @@ async function loadKlines(sym,tfMin){
     }
     const seen=new Set();
     chartData=all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
-    candleSeries.setData(chartData);
+    setSeriesData(chartData);
     mainChart.timeScale().fitContent();
     if(chartData.length){const last=chartData[chartData.length-1];prices[sym]=last.close;updatePriceDisplay(sym,last.close,changes[sym]||0);}
     renderIndicators(chartData);
@@ -2038,6 +2038,10 @@ async function startWith(exId) {
   document.getElementById('ctrlBar').style.display    = 'flex';
   document.getElementById('mainLayout').style.display = 'flex';
   document.getElementById('bottom-panel').style.display = 'flex';
+  // Force chart resize now that layout is visible
+  await new Promise(r => setTimeout(r, 50));
+  const mw = document.getElementById('main-wrap');
+  if (mw && mainChart) mainChart.resize(mw.clientWidth, mw.clientHeight);
   // Load klines + connect WS
   await loadKlines(curSym, curTfMin);
   connectWS();
