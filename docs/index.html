@@ -9,6 +9,24 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0d1117;--sf:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;--gn:#3fb950;--rd:#f85149}
 body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+/* Splash */
+#splash{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.splash-logo{font-size:40px;margin-bottom:8px}
+.splash-title{font-size:22px;font-weight:700;color:var(--tx);margin-bottom:6px}
+.splash-sub{font-size:13px;color:var(--mu);margin-bottom:40px}
+.splash-ex-row{display:flex;gap:16px;margin-bottom:40px}
+.splash-ex-btn{width:130px;padding:18px 10px;border-radius:12px;border:2px solid var(--bd);background:var(--sf);color:var(--tx);cursor:pointer;text-align:center;transition:all .2s}
+.splash-ex-btn:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 4px 20px #58a6ff22}
+.splash-ex-btn .ex-icon{font-size:28px;margin-bottom:8px}
+.splash-ex-btn .ex-name{font-size:14px;font-weight:700}
+.splash-ex-btn .ex-desc{font-size:10px;color:var(--mu);margin-top:3px}
+/* Loading phase */
+#splash-loading{display:none;flex-direction:column;align-items:center;width:320px}
+.splash-loading-title{font-size:14px;color:var(--mu);margin-bottom:20px}
+.progress-track{width:100%;height:6px;background:var(--bd);border-radius:3px;overflow:hidden;margin-bottom:12px}
+.progress-fill{height:100%;background:linear-gradient(90deg,#1f6feb,var(--ac));border-radius:3px;transition:width .3s}
+.progress-text{font-size:11px;color:var(--mu);text-align:center}
+.progress-sym{font-size:12px;color:var(--tx);font-weight:600;margin-bottom:6px}
 /* Header */
 header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .logo{font-size:13px;color:var(--ac);font-weight:700;white-space:nowrap}
@@ -116,7 +134,37 @@ input:focus,select:focus{border-color:var(--ac)}
 </head>
 <body>
 
-<header>
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <div class="splash-logo">📈</div>
+  <div class="splash-title">模拟交易平台</div>
+  <div class="splash-sub">选择交易所开始模拟交易</div>
+  <div class="splash-ex-row">
+    <button class="splash-ex-btn" onclick="startWith('binance')">
+      <div class="ex-icon">🟡</div>
+      <div class="ex-name">Binance</div>
+      <div class="ex-desc">全球最大交易所</div>
+    </button>
+    <button class="splash-ex-btn" onclick="startWith('okx')">
+      <div class="ex-icon">🔵</div>
+      <div class="ex-name">OKX</div>
+      <div class="ex-desc">欧易，亚洲最大</div>
+    </button>
+    <button class="splash-ex-btn" onclick="startWith('bybit')">
+      <div class="ex-icon">🟠</div>
+      <div class="ex-name">Bybit</div>
+      <div class="ex-desc">衍生品交易所</div>
+    </button>
+  </div>
+  <div id="splash-loading">
+    <div class="splash-loading-title" id="splashTitle">正在加载行情数据...</div>
+    <div class="progress-sym" id="splashSym"></div>
+    <div class="progress-track"><div class="progress-fill" id="splashPb" style="width:0%"></div></div>
+    <div class="progress-text" id="splashPct">0%</div>
+  </div>
+</div>
+
+<header style="display:none" id="mainHeader">
   <div class="logo">📈 模拟交易</div>
   <div class="ex-tabs">
     <button class="ex-tab active" onclick="setExchange('binance')">Binance</button>
@@ -134,9 +182,9 @@ input:focus,select:focus{border-color:var(--ac)}
   </div>
 </header>
 
-<div class="ctrl-bar" id="ctrlBar"></div>
+<div class="ctrl-bar" id="ctrlBar" style="display:none"></div>
 
-<div class="layout">
+<div class="layout" id="mainLayout" style="display:none">
   <div id="draw-tb">
     <button class="dtool active" data-tool="cursor" title="光标" onclick="setTool(this)">⊹</button>
     <div class="dtool-sep"></div>
@@ -707,13 +755,138 @@ function toast(msg,isErr=0){const el=document.getElementById('toast');el.textCon
 setInterval(()=>{if(activeTab==='account')renderAccount();},3000);
 
 // ════════════════════════════════════════════════════════
+// KLINE CACHE + PRELOAD
+// ════════════════════════════════════════════════════════
+const klineCache = {}; // klineCache[exId][sym][tfMin] = data[]
+
+function cacheKey(exId,sym,tfMin){ return `${exId}|${sym}|${tfMin}`; }
+
+// Wrap loadKlines to use cache
+const _origLoad = loadKlines;
+loadKlines = async function(sym, tfMin) {
+  const key = cacheKey(curExchange, sym, tfMin);
+  if (klineCache[key]) {
+    // instant: use cache
+    chartData = klineCache[key];
+    candleSeries.setData(chartData);
+    mainChart.timeScale().fitContent();
+    if (chartData.length) {
+      prices[sym] = chartData[chartData.length-1].close;
+      updatePriceDisplay(sym, prices[sym], changes[sym]||0);
+    }
+    renderIndicators(chartData);
+    return;
+  }
+  await _origLoad(sym, tfMin);
+  // store in cache after load
+  if (chartData.length) klineCache[key] = [...chartData];
+};
+
+// Preload: top symbols at 1H + 1D for selected exchange
+const PRELOAD_TFS = [60, 1440]; // 1H, 1D
+const PRELOAD_COUNT = 8;        // top N symbols
+
+async function preloadAll(exId, onProgress) {
+  const ex = EXCHANGES[exId];
+  const syms = Object.values(ex.categories).flat().slice(0, PRELOAD_COUNT);
+  const jobs = [];
+  for (const sym of syms) for (const tfMin of PRELOAD_TFS) jobs.push({sym, tfMin});
+
+  for (let i = 0; i < jobs.length; i++) {
+    const {sym, tfMin} = jobs[i];
+    onProgress(i, jobs.length, sym, tfMin);
+    const key = cacheKey(exId, sym, tfMin);
+    if (!klineCache[key]) {
+      try {
+        // temporarily set curExchange for fetch
+        const savedEx = curExchange; curExchange = exId;
+        const iv = ex.tfMap[tfMin];
+        const all = [];
+        let start = getStartMs(tfMin), batch = 0;
+        while (start < Date.now()) {
+          const chunk = await ex.getKlines(sym, iv, start);
+          if (!chunk || !chunk.length) break;
+          all.push(...chunk);
+          const last = chunk[chunk.length-1];
+          start = (last.closeMs || last.time*1000 + tfMin*60000) + 1;
+          batch++;
+          if (chunk.length < (exId==='okx'?300:1000)) break;
+          if (batch % 5 === 0) await sleep(150);
+        }
+        const seen = new Set();
+        const data = all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
+        klineCache[key] = data;
+        curExchange = savedEx;
+      } catch(e) { console.warn('preload failed', sym, tfMin, e); }
+    }
+    // small pause between requests
+    await sleep(80);
+  }
+  onProgress(jobs.length, jobs.length, '', 0);
+}
+
+// ════════════════════════════════════════════════════════
+// ENTRY POINT — user picks exchange on splash
+// ════════════════════════════════════════════════════════
+async function startWith(exId) {
+  // hide exchange buttons, show loading bar
+  document.querySelector('.splash-ex-row').style.display = 'none';
+  document.querySelector('.splash-sub').style.display = 'none';
+  const loadDiv = document.getElementById('splash-loading');
+  loadDiv.style.display = 'flex';
+
+  const ex = EXCHANGES[exId];
+  document.getElementById('splashTitle').textContent = `正在加载 ${ex.name} 行情数据...`;
+
+  // preload with progress
+  await preloadAll(exId, (done, total, sym, tfMin) => {
+    const pct = total ? Math.round(done/total*100) : 100;
+    document.getElementById('splashPb').style.width = pct + '%';
+    document.getElementById('splashPct').textContent = `${done}/${total} · ${pct}%`;
+    if (sym) {
+      const tfLabel = TIMEFRAMES.find(t=>t.m===tfMin)?.l || tfMin;
+      document.getElementById('splashSym').textContent = `${sym}  ${tfLabel}`;
+    }
+  });
+
+  // set exchange + default symbol
+  curExchange = exId;
+  curSym = Object.values(ex.categories).flat()[0];
+  curTfMin = 60; // default 1H
+
+  // update exchange tab buttons
+  document.querySelectorAll('.ex-tab').forEach((el,i)=>
+    el.classList.toggle('active', ['binance','okx','bybit'][i] === exId)
+  );
+  document.getElementById('symBtnText').textContent = ex.fmtDisplay(curSym);
+
+  // init charts + charts bar
+  initCharts();
+  initCanvas();
+  buildCtrlBar();
+  canvas.style.pointerEvents = 'none';
+
+  // show main UI
+  document.getElementById('mainHeader').style.display = 'flex';
+  document.getElementById('ctrlBar').style.display    = 'flex';
+  document.getElementById('mainLayout').style.display = 'flex';
+
+  // load default symbol (already cached, instant) + connect WS
+  await loadKlines(curSym, curTfMin);
+  connectWS();
+
+  // fade out splash last
+  const splash = document.getElementById('splash');
+  splash.style.transition = 'opacity .5s';
+  splash.style.opacity = '0';
+  setTimeout(() => { splash.style.display = 'none'; }, 500);
+}
+
+// ════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════
-initCharts();
-initCanvas();
-buildCtrlBar();
-canvas.style.pointerEvents='none';
-loadKlines(curSym,curTfMin).then(()=>connectWS());
+// Do NOT auto-init charts — wait for startWith()
+// (charts are initialized inside startWith after preload)
 </script>
 </body>
 </html>
