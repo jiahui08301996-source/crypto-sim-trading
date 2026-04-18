@@ -1220,7 +1220,7 @@ function startRestPoll() {
         if (pd.lastPrice) {
           prices[sym] = +pd.lastPrice;
           changes[sym] = +pd.priceChangePercent;
-          updatePriceDisplay(+pd.lastPrice, +pd.priceChangePercent);
+          updatePriceDisplay(sym, +pd.lastPrice, +pd.priceChangePercent);
         }
       }
     } catch(e) {}
@@ -1308,7 +1308,7 @@ function connectWS(){
 }
 function updatePriceDisplay(sym,price,chg){
   const prev=prevPrices[sym],el=document.getElementById('livePrice');
-  el.textContent='$'+price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+  el.textContent='$'+fmtPrice(price);
   el.className='live-price'+(prev&&price>prev?' up':prev&&price<prev?' down':'');
   const chgEl=document.getElementById('chgInfo');
   const c=chg||0;
