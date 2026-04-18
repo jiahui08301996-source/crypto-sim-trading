@@ -315,7 +315,7 @@ input:focus,select:focus{border-color:var(--ac)}
 <div id="splash">
   <div class="splash-logo">📈</div>
   <div class="splash-title">XNdemo</div>
-  <div class="splash-sub">数字资产XNdemo 模拟交易</div>
+  <div class="splash-sub">XNdemo 模拟交易平台</div>
   <div class="splash-ex-row"><p style="color:#a259ff">正在连接 Aster DEX...</p></div>
         <div class="ex-name">Hyperliquid</div>
         <div class="ex-desc" style="color:#00e5a0">去中心化 · Layer 1 DEX</div>
@@ -2045,7 +2045,7 @@ async function startWith(exId) {
   renderPositions();
   // Hide splash
   const splash = document.getElementById('splash');
-  if (splash) { splash.style.opacity='0'; setTimeout(()=>splash.style.display='none',300); }
+  if (splash) { splash.style.display='none'; }
 }
 async function nativeShare(){
   const el=document.getElementById('share-canvas');
