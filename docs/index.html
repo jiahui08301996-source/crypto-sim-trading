@@ -866,7 +866,77 @@ const EXCHANGES = {
       'Meme':['DOGEUSDT','SHIBUSDT','PEPEUSDT','WIFUSDT'],
       '其他':['LTCUSDT','BCHUSDT','FILUSDT'],
     }
+  },
+  hyperliquid: {
+    name:'Hyperliquid', color:'#00e5a0', skipPreload:true,
+    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',1440:'1d'},
+    fmtSym: s => s,
+    fmtDisplay: s => s + '-USD',
+    async getKlines(sym, iv, startMs) {
+      try {
+        const body = JSON.stringify({type:'candleSnapshot',req:{coin:sym,interval:iv,startTime:startMs,endTime:Date.now()}});
+        const r = await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body});
+        if(!r.ok) return null;
+        const raw = await r.json();
+        if(!Array.isArray(raw)||!raw.length) return null;
+        return raw.map(k=>({'time':Math.floor(k.t/1000),'open':+k.o,'high':+k.h,'low':+k.l,'close':+k.c,'volume':+k.v,'closeMs':k.T}));
+      } catch(e) { return null; }
+    },
+    buildWS(syms,tf){return 'wss://api.hyperliquid.xyz/ws';},
+    wsOnOpen(ws,syms,tf){
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'allMids'}}));
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'candle',coin:syms[0],interval:tf}}));
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'l2Book',coin:syms[0]}}));
+      ws.send(JSON.stringify({method:'subscribe',subscription:{type:'trades',coin:syms[0]}}));
+    },
+    parseWS(data){
+      if(data.channel==='allMids'&&data.data?.mids){const mids=data.data.mids;return{type:'tickers',data:Object.entries(mids).map(([sym,price])=>({'type':'ticker',sym,price:+price,chg:0})) };}
+      if(data.channel==='candle'&&data.data){const k=data.data;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
+      if(data.channel==='l2Book'&&data.data){const d=data.data;return{type:'depth',bids:(d.levels[0]||[]).map(l=>[+l.px,+l.sz]),asks:(d.levels[1]||[]).map(l=>[+l.px,+l.sz])};}
+      if(data.channel==='trades'&&data.data){const t=data.data[0];if(t)return{type:'trade',price:t.px,qty:t.sz,isBuy:t.side==='A',time:+t.time};}
+      return null;
+    },
+    categories:{
+      '主流': ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "AVAX", "ADA", "TRX", "LTC", "BCH", "DOT", "NEAR", "ATOM", "APT", "SUI"],
+      'DeFi': ["UNI", "AAVE", "LINK", "CRV", "LDO", "SNX", "COMP", "MKR", "SUSHI", "RUNE", "GMX", "PENDLE", "JUP", "STG", "CAKE", "FXS"],
+      'Layer2': ["ARB", "OP", "MATIC", "POL", "STRK", "IMX", "MANTA", "ZETA", "BLAST", "ZK", "SCR", "LINEA"],
+      'Meme': ["kPEPE", "kSHIB", "kBONK", "kFLOKI", "kDOGS", "kNEIRO", "kLUNC", "WIF", "BOME", "POPCAT", "BRETT", "MEW", "TURBO", "MEME", "GOAT", "MOODENG", "PNUT", "CHILLGUY", "FARTCOIN", "JELLY", "TRUMP", "MELANIA", "TST", "PURR", "NEIROETH"],
+      'AI': ["AI", "TAO", "RENDER", "RNDR", "FET", "VIRTUAL", "AIXBT", "AI16Z", "ZEREBRO", "GRIFFAIN", "PROMPT", "KAITO", "HYPER"],
+      '基础设施': ["FIL", "AR", "ICP", "HBAR", "XLM", "ALGO", "KAS", "IOTA", "ZEC", "XMR", "DASH", "PYTH", "TIA", "ORDI", "INJ", "SEI", "TON", "EIGEN", "HYPE"],
+      '其他': ["DYDX", "APE", "STX", "CFX", "FTM", "WLD", "HPOS", "RLB", "UNIBOT", "YGG", "OX", "FRIEND", "SHIA", "CYBER", "ZRO", "BLZ", "BANANA", "TRB", "FTT", "LOOM", "OGN", "RDNT", "ARK", "BNT", "CANTO", "REQ", "BIGTIME", "ORBS", "BLUR", "BSV", "MINA", "POLYX", "GAS", "STRAX", "BADGER", "NEO", "ZEN", "ILV", "GMT", "SUPER", "USTC", "NFTI", "RSR", "GALA", "JTO", "NTRN", "ACE", "MAV", "PEOPLE", "ENS", "ETC", "XAI", "UMA", "ONDO", "ALT", "DYM", "MAVIA", "W", "PANDORA", "PIXEL", "MYRO", "ETHFI", "ENA", "MNT", "TNSR", "SAGA", "MERL", "OMNI", "REZ", "NOT", "IO", "LISTA", "CATI", "CELO", "HMSTR", "GRASS", "SAND", "ME", "MOVE", "PENGU", "USUAL", "BIO", "SPX", "S", "MORPHO", "ANIME", "VINE", "VVV", "BERA", "LAYER", "IP", "OM", "NIL", "PAXG", "BABY", "WCT", "ZORA", "INIT", "DOOD", "LAUNCHCOIN", "NXPC", "SOPH", "RESOLV", "SYRUP", "PUMP", "PROVE", "YZY", "XPL", "WLFI", "SKY", "ASTER", "AVNT", "STBL", "0G", "HEMI", "APEX", "2Z", "MON", "MET", "MEGA", "CC", "AERO", "STABLE", "FOGO", "LIT", "AXS", "SKR", "AZTEC"]
+    }
+  },
+  aster: {
+    name:'Aster DEX', color:'#a259ff', skipPreload:true,
+    tfMap:{1:'1m',5:'5m',15:'15m',30:'30m',60:'1h',240:'4h',1440:'1d'},
+    fmtSym: s => s,
+    fmtDisplay: s => s.replace('USDT','/T'),
+    async getKlines(sym,iv,startMs){
+      try {
+        const url=`https://www.asterdex.com/api/v1/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
+        const r=await fetch(url); if(!r.ok) return null;
+        const raw=await r.json();
+        return raw.map(k=>({'time':Math.floor(k[0]/1000),'open':+k[1],'high':+k[2],'low':+k[3],'close':+k[4],'volume':+k[5],'closeMs':k[6]||k[0]+60000}));
+      } catch(e) { return null; }
+    },
+    buildWS(syms,tf){
+      const sl=syms[0].toLowerCase();
+      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${tf}`,`${sl}@depth20@100ms`,`${sl}@aggTrade`].join('/');
+      return `wss://stream.asterdex.com/stream?streams=${streams}`;
+    },
+    parseWS(data,stream){
+      if(!stream) return null;
+      if(stream.includes('@ticker')) return {type:'ticker',sym:data.s,price:+data.c,chg:+data.P};
+      if(stream.includes('@kline')){const k=data.k;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
+      if(stream.includes('@depth')){return{type:'depth',bids:data.bids.map(b=>[+b[0],+b[1]]).filter(b=>b[1]>0),asks:data.asks.map(a=>[+a[0],+a[1]]).filter(a=>a[1]>0)};}
+      if(stream.includes('@aggTrade')){return{type:'trade',price:data.p,qty:data.q,isBuy:!data.m,time:data.T};}
+      return null;
+    },
+    categories:{
+      '全部': ["BTCUSDT", "ETHUSDT", "BNBUSDT", "BIOUSDT", "GUAUSDT", "GIGGLEUSDT", "SOONUSDT", "SKYAIUSDT", "DEXEUSDT", "SENTISUSDT", "CYSUSDT", "WBULLUSDT", "LISAUSDT", "PALUUSDT", "SZNUSDT", "USD1USDT", "PUPUSDT", "USDCUSDT", "VELOUSDT", "FORMUSDT", "NBUSDT", "ASTERUSDT", "CMC20USDT", "DUSTUSDT", "GAIXUSDT", "BIANLIFEUSDT", "HEMIUSDT", "ATUSDT", "CSXHUSDT", "STARUSDT", "AVLUSDT", "B2USDT", "TAGUSDT", "ARTXUSDT", "BMTUSDT", "BREVUSDT", "UUSDT", "CWZYUSDT", "YEPEUSDT", "CDLUSDT", "4USDT"]
+    }
   }
+
 };
 
 const TIMEFRAMES=[
