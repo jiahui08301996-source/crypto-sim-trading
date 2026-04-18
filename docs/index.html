@@ -1182,6 +1182,7 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function getAllSyms(){return Object.values(EXCHANGES[curExchange].categories).flat();}
 
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // REST POLLING FALLBACK (when WS is disconnected)
 // ════════════════════════════════════════════════════════
 let _restPollTimer = null;
@@ -1189,30 +1190,30 @@ let _restPollTimer = null;
 function startRestPoll() {
   if (_restPollTimer) return;
   _restPollTimer = setInterval(async function() {
-    if (ws && ws.readyState === WebSocket.OPEN) return; // WS is fine, skip
-    const ex = EXCHANGES[curExchange];
+    if (ws && ws.readyState === WebSocket.OPEN) return;
     const sym = curSym;
     try {
-      // 1. Fetch order book
+      // Order book
       const dr = await fetch(`https://www.asterdex.com/api/v1/depth?symbol=${sym}&limit=20`);
       if (dr.ok) {
         const dd = await dr.json();
-        const bids = (dd.bids||[]).map(b=>[+b[0],+b[1]]).filter(b=>b[1]>0);
-        const asks = (dd.asks||[]).map(a=>[+a[0],+a[1]]).filter(a=>a[1]>0);
-        renderOrderBook(bids, asks);
+        orderBook.bids = (dd.bids||[]).map(b=>[+b[0],+b[1]]).filter(b=>b[1]>0);
+        orderBook.asks = (dd.asks||[]).map(a=>[+a[0],+a[1]]).filter(a=>a[1]>0);
+        renderOrderBook();
+        renderBookMidPrice();
       }
     } catch(e) {}
     try {
-      // 2. Fetch recent trades
+      // Recent trades
       const tr = await fetch(`https://www.asterdex.com/api/v1/trades?symbol=${sym}&limit=30`);
       if (tr.ok) {
         const td = await tr.json();
-        const trades = td.map(t=>({price:+t.price, qty:+t.qty, isBuy:t.isBuyerMaker===false, time:t.time}));
-        renderTrades(trades);
+        recentTrades = td.map(t=>({price:+t.price,qty:+t.qty,isBuy:t.isBuyerMaker===false,time:t.time}));
+        renderTrades();
       }
     } catch(e) {}
     try {
-      // 3. Fetch latest ticker price
+      // Live price
       const pr = await fetch(`https://www.asterdex.com/api/v1/ticker/24hr?symbol=${sym}`);
       if (pr.ok) {
         const pd = await pr.json();
@@ -1224,17 +1225,15 @@ function startRestPoll() {
       }
     } catch(e) {}
     try {
-      // 4. Fetch latest kline candle
+      // Latest kline candle
       const tfStr = EXCHANGES[curExchange].tfMap[curTfMin] || '1h';
       const kr = await fetch(`https://www.asterdex.com/api/v1/klines?symbol=${sym}&interval=${tfStr}&limit=3`);
       if (kr.ok) {
         const kd = await kr.json();
-        if (kd && kd.length) {
+        if (kd && kd.length && candleSeries) {
           const last = kd[kd.length-1];
-          const candle = {time:Math.floor(last[0]/1000),open:+last[1],high:+last[2],low:+last[3],close:+last[4],volume:+last[5]};
-          if (candleSeries && candle.time) {
-            try { candleSeries.update(candle); } catch(e) {}
-          }
+          const c = {time:Math.floor(last[0]/1000),open:+last[1],high:+last[2],low:+last[3],close:+last[4],volume:+last[5]};
+          try { updateSeriesCandle(c); } catch(e2) {}
         }
       }
     } catch(e) {}
