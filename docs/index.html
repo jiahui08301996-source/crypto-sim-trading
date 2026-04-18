@@ -341,7 +341,7 @@ input:focus,select:focus{border-color:var(--ac)}
 
 <header style="display:none" id="mainHeader">
   <div class="logo" style="color:#a259ff;font-weight:800;font-size:15px">XNdemo</div>
-  <div class="ex-tabs"><span style="color:#a259ff;font-weight:700;font-size:13px">Aster DEX</span></div>
+  <div class="ex-tabs"><span style="color:#a259ff;font-weight:700;font-size:13px">Aster DEX</span><span style="color:#888;font-size:11px;margin-left:5px">永续合约</span></div>
   <button id="symBtn" onclick="openSymModal()">
     <span id="symBtnText">BTC/USDC</span>
     <span style="color:var(--mu);font-size:10px">▼</span>
@@ -738,18 +738,23 @@ const EXCHANGES = {
     name:'Aster DEX', color:'#a259ff', skipPreload:true,
     tfMap:{1:'1m',5:'5m',15:'15m',30:'30m',60:'1h',240:'4h',1440:'1d'},
     fmtSym: s => s,
-    fmtDisplay: s => s.replace('USDT','/USDT'),
+    fmtDisplay: s => {
+      if(s.endsWith('USD1')) return s.replace('USD1','/USD1');
+      if(s.endsWith('USDT')) return s.replace('USDT','/USDT');
+      return s;
+    },
     async getKlines(sym,iv,startMs){
       try {
         const url=`https://www.asterdex.com/api/v1/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
         const r=await fetch(url); if(!r.ok) return null;
         const raw=await r.json();
-        return raw.map(k=>({'time':Math.floor(k[0]/1000),'open':+k[1],'high':+k[2],'low':+k[3],'close':+k[4],'volume':+k[5],'closeMs':k[6]||k[0]+60000}));
+        return raw.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:k[6]||k[0]+60000}));
       } catch(e) { return null; }
     },
     buildWS(syms,tf){
       const sl=syms[0].toLowerCase();
-      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),
+      const tickerSyms=syms.slice(0,20).map(s=>s.toLowerCase()+'@ticker');
+      const streams=[...tickerSyms,
         `${sl}@kline_${tf}`,`${sl}@depth20@100ms`,`${sl}@aggTrade`].join('/');
       return `wss://stream.asterdex.com/stream?streams=${streams}`;
     },
@@ -762,10 +767,11 @@ const EXCHANGES = {
       return null;
     },
     categories:{
-      '主流': ["BTCUSDT", "ETHUSDT", "BNBUSDT"],
-      'DeFi': ["DEXEUSDT", "VELOUSDT", "ASTERUSDT"],
-      'Meme': ["GUAUSDT", "GIGGLEUSDT", "PUPUSDT", "SOONUSDT"],
-      '新币': ["BIOUSDT", "SKYAIUSDT", "SENTISUSDT", "CYSUSDT", "WBULLUSDT", "LISAUSDT", "PALUUSDT", "SZNUSDT", "USD1USDT", "CMC20USDT", "DUSTUSDT", "GAIXUSDT", "BIANLIFEUSDT", "HEMIUSDT", "ATUSDT", "CSXHUSDT", "STARUSDT", "AVLUSDT", "B2USDT", "TAGUSDT", "ARTXUSDT", "BMTUSDT", "BREVUSDT", "UUSDT", "CWZYUSDT", "YEPEUSDT", "CDLUSDT", "FORMUSDT", "NBUSDT", "4USDT"],
+      '主流':['BTCUSDT','ETHUSDT','BNBUSDT'],
+      'DeFi':['DEXEUSDT','VELOUSDT','ASTERUSDT'],
+      'Meme':['GUAUSDT','GIGGLEUSDT','PUPUSDT','SOONUSDT'],
+      'USD1计价':['SPACEUSD1','CDLUSD1','ANUSD1','YIUSD1','RAVEUSD1','RTXUSD1','LIBERTYUSD1'],
+      '新币':['BIOUSDT','SKYAIUSDT','SENTISUSDT','CYSUSDT','WBULLUSDT','LISAUSDT','PALUUSDT','SZNUSDT','USD1USDT','CMC20USDT','DUSTUSDT','GAIXUSDT','BIANLIFEUSDT','HEMIUSDT','ATUSDT','CSXHUSDT','STARUSDT','AVLUSDT','B2USDT','TAGUSDT','ARTXUSDT','BMTUSDT','BREVUSDT','UUSDT','CWZYUSDT','YEPEUSDT','CDLUSDT','FORMUSDT','NBUSDT','4USDT','USDCUSDT']
     }
   }
 }
@@ -1806,7 +1812,18 @@ function updateOHLCV(c){
 // ════════════════════════════════════════════════════════
 // ORDER BOOK + TRADES RENDER
 // ════════════════════════════════════════════════════════
-function fmtPrice(p){return(+p).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtPrice(p){
+  const v=+p; if(!isFinite(v)) return '--'; if(v===0) return '0.00';
+  const a=Math.abs(v);
+  if(a>=1000) return v.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(a>=10)   return v.toFixed(2);
+  if(a>=1)    return v.toFixed(4);
+  if(a>=0.1)  return v.toFixed(4);
+  if(a>=0.01) return v.toFixed(5);
+  if(a>=0.001) return v.toFixed(6);
+  if(a>=0.0001) return v.toFixed(7);
+  return v.toFixed(8);
+}
 function fmtQty(q){const n=+q;return n>=1?n.toFixed(3):n.toFixed(5);}
 function fmtVol(p,q){const v=(+p)*(+q);return v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);}
 
