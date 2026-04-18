@@ -1773,16 +1773,41 @@ async function checkCacheStatus(exId) {
 // ════════════════════════════════════════════════════════
 // ENTRY POINT — user picks exchange on splash
 // ════════════════════════════════════════════════════════
-async function startWith(exId) {
-  document.querySelector('.splash-ex-row').style.display = 'none';
-  document.querySelector('.splash-sub').style.display = 'none';
-  const loadDiv = document.getElementById('splash-loading');
-  loadDiv.style.display = 'flex';
+// ── Auto-preload: start loading Binance data silently on page open ────────
+let _autoPreloadDone = false;
+let _autoPreloadPromise = null;
 
+async function _doAutoPreload() {
+  try {
+    await preloadAll('binance', function(){});
+    _autoPreloadDone = true;
+  } catch(e) { /* ignore, will reload on click */ }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  _autoPreloadPromise = _doAutoPreload();
+});
+
+async function startWith(exId) {
   const ex = EXCHANGES[exId];
-  const {hits, total} = await checkCacheStatus(exId);
-  const fromCache = hits > 0;
-  document.getElementById('splashTitle').textContent = fromCache
+
+  // If auto-preload already done for binance, skip loading screen entirely
+  if (exId === 'binance' && _autoPreloadDone) {
+    // data is ready - jump straight to app
+  } else {
+    // Show loading UI
+    document.querySelector('.splash-ex-row').style.display = 'none';
+    document.querySelector('.splash-sub').style.display = 'none';
+    const loadDiv = document.getElementById('splash-loading');
+    loadDiv.style.display = 'flex';
+    if (exId === 'binance' && _autoPreloadPromise) {
+      // Preload in progress - wait for it silently
+      document.getElementById('splashTitle').textContent = '即将就绪，正在完成预加载...';
+      await _autoPreloadPromise;
+    } else {
+      const {hits, total} = await checkCacheStatus(exId);
+      const fromCache = hits > 0;
+      document.getElementById('splashTitle').textContent = fromCache
     ? `📦 从本地缓存加载 ${ex.name}... (${hits}/${total} 命中)`
     : `正在首次加载 ${ex.name} 行情数据...`;
 
@@ -1796,6 +1821,8 @@ async function startWith(exId) {
       document.getElementById('splashSym').textContent = `${sym}  ${tfLabel}`;
     }
   });
+    }
+  }
 
   // set exchange + default symbol
   curExchange = exId;
