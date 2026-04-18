@@ -15,63 +15,68 @@
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
 /* Header */
-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap; }
-.logo { font-size: 14px; color: var(--accent); font-weight: 700; white-space: nowrap; }
-.sym-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.sym-tab { padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-size: 12px; transition: all .15s; }
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 7px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.logo { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+.sym-tabs { display: flex; gap: 3px; flex-wrap: wrap; }
+.sym-tab { padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-size: 11px; }
 .sym-tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
-.price-wrap { margin-left: auto; text-align: right; }
-.live-price { font-size: 20px; font-weight: 700; transition: color .2s; }
-.live-price.up { color: var(--green); }
-.live-price.down { color: var(--red); }
-.hz { font-size: 10px; color: var(--muted); }
-.ws-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 4px; transition: background .3s; }
+.price-wrap { margin-left: auto; text-align: right; line-height: 1.3; }
+.live-price { font-size: 18px; font-weight: 700; }
+.live-price.up { color: var(--green); } .live-price.down { color: var(--red); }
+.sub-info { font-size: 10px; color: var(--muted); }
+.ws-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; }
 .ws-dot.on { background: var(--green); }
+
+/* Timeframe bar */
+.tf-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 5px 12px; display: flex; gap: 3px; flex-wrap: wrap; flex-shrink: 0; }
+.tf-btn { padding: 3px 9px; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; }
+.tf-btn.active { background: #1f6feb22; color: var(--accent); font-weight: 600; }
+.tf-btn:hover:not(.active) { color: var(--text); }
 
 /* Layout */
 .main { display: flex; flex: 1; overflow: hidden; }
 #chart-wrap { flex: 1; min-width: 0; position: relative; }
+.loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0d111788; z-index: 10; font-size: 13px; color: var(--muted); }
 
 /* Right panel */
-.panel { width: 300px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-@media (max-width: 700px) {
+.panel { width: 290px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+@media (max-width: 680px) {
   .main { flex-direction: column; }
-  #chart-wrap { height: 45vh; flex: none; }
+  #chart-wrap { height: 42vh; flex: none; }
   .panel { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1; }
+  .tf-bar { padding: 4px 8px; }
 }
 .tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.tab { flex: 1; padding: 9px; text-align: center; font-size: 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; transition: all .15s; }
+.tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-body { flex: 1; overflow-y: auto; padding: 12px; }
+.tab-body { flex: 1; overflow-y: auto; padding: 11px; }
 
 /* Form */
-.fg { margin-bottom: 10px; }
+.fg { margin-bottom: 9px; }
 label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
-input, select { width: 100%; padding: 7px 9px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; outline: none; }
+input, select { width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 12px; outline: none; }
 input:focus, select:focus { border-color: var(--accent); }
-.btn-row { display: flex; gap: 8px; margin-top: 14px; }
-.btn { flex: 1; padding: 9px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-row { display: flex; gap: 7px; margin-top: 12px; }
+.btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .btn-buy { background: #238636; color: #fff; }
 .btn-sell { background: #da3633; color: #fff; }
-.btn-sm { width: 100%; padding: 6px; background: var(--border); color: var(--muted); border: none; border-radius: 6px; cursor: pointer; font-size: 11px; margin-top: 8px; }
+.btn-sm { width: 100%; padding: 5px; background: var(--border); color: var(--muted); border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-top: 7px; }
 
 /* Stats */
-.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-.stat { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 9px; }
-.stat .lbl { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
-.stat .val { font-size: 15px; font-weight: 700; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; }
+.stat { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px; }
+.stat .lbl { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
+.stat .val { font-size: 14px; font-weight: 700; }
 .pos { color: var(--green); } .neg { color: var(--red); }
 
-/* Lists */
-.sec-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 10px 0 5px; }
-.pos-row, .ord-row { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; margin-bottom: 5px; font-size: 11px; }
+.sec-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 9px 0 4px; }
+.pos-row, .ord-row { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 6px 8px; margin-bottom: 4px; font-size: 11px; }
 .ord-row { display: flex; justify-content: space-between; align-items: center; }
-.xbtn { background: none; border: 1px solid var(--red); color: var(--red); border-radius: 4px; padding: 1px 6px; cursor: pointer; font-size: 10px; }
-.empty { color: var(--muted); font-size: 12px; text-align: center; padding: 16px 0; }
-.hist-row { font-size: 11px; padding: 5px 0; border-bottom: 1px solid #21262d; display: flex; gap: 6px; align-items: center; }
+.xbtn { background: none; border: 1px solid var(--red); color: var(--red); border-radius: 3px; padding: 1px 5px; cursor: pointer; font-size: 10px; }
+.empty { color: var(--muted); font-size: 12px; text-align: center; padding: 14px 0; }
+.hist-row { font-size: 11px; padding: 5px 0; border-bottom: 1px solid #21262d; display: flex; gap: 5px; align-items: center; }
 
-/* Toast */
-#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 9px 18px; border-radius: 8px; font-size: 13px; display: none; z-index: 999; color: #fff; white-space: nowrap; }
+#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 16px; border-radius: 7px; font-size: 12px; display: none; z-index: 999; color: #fff; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -81,13 +86,19 @@ input:focus, select:focus { border-color: var(--accent); }
   <div class="sym-tabs" id="symTabs"></div>
   <div class="price-wrap">
     <span class="ws-dot" id="wsDot"></span>
-    <span class="live-price" id="livePrice">--</span><br>
-    <span class="hz" id="hzBadge"></span>
+    <span class="live-price" id="livePrice">--</span>
+    <br>
+    <span class="sub-info" id="subInfo">连接中...</span>
   </div>
 </header>
 
+<!-- 时间周期切换 -->
+<div class="tf-bar" id="tfBar"></div>
+
 <div class="main">
-  <div id="chart-wrap"></div>
+  <div id="chart-wrap">
+    <div class="loading-overlay" id="loadingOverlay">加载K线数据...</div>
+  </div>
 
   <div class="panel">
     <div class="tabs">
@@ -105,20 +116,20 @@ input:focus, select:focus { border-color: var(--accent); }
         </select>
       </div>
       <div class="fg" id="priceField">
-        <label>价格 (USDT)</label>
-        <input id="oPrice" type="number" placeholder="输入挂单价格" step="0.01">
+        <label>价格 (USDT/USDC)</label>
+        <input id="oPrice" type="number" placeholder="挂单价格" step="0.01">
       </div>
       <div class="fg">
         <label>数量</label>
         <input id="oSize" type="number" placeholder="0.001" step="0.001">
       </div>
       <div class="fg">
-        <label>止盈价 (可选)</label>
-        <input id="oTp" type="number" placeholder="触达此价自动平仓" step="0.01">
+        <label>止盈价（可选）</label>
+        <input id="oTp" type="number" placeholder="触达自动平仓" step="0.01">
       </div>
       <div class="fg">
-        <label>止损价 (可选)</label>
-        <input id="oSl" type="number" placeholder="触达此价止损" step="0.01">
+        <label>止损价（可选）</label>
+        <input id="oSl" type="number" placeholder="触达止损" step="0.01">
       </div>
       <div class="btn-row">
         <button class="btn btn-buy" onclick="placeOrder('buy')">买 / 做多</button>
@@ -129,10 +140,8 @@ input:focus, select:focus { border-color: var(--accent); }
 
     <div class="tab-body" id="pane-account" style="display:none">
       <div class="stat-grid" id="statGrid"></div>
-      <div class="sec-title">持仓</div>
-      <div id="posDiv"></div>
-      <div class="sec-title">挂单</div>
-      <div id="ordDiv"></div>
+      <div class="sec-title">持仓</div><div id="posDiv"></div>
+      <div class="sec-title">挂单</div><div id="ordDiv"></div>
     </div>
 
     <div class="tab-body" id="pane-history" style="display:none">
@@ -140,139 +149,202 @@ input:focus, select:focus { border-color: var(--accent); }
     </div>
   </div>
 </div>
-
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 // CONFIG
-// ════════════════════════════════════════
-const SYMBOLS = ['BTCUSDC','BTCUSDT','ETHUSDC','ETHUSDT','SOLUSDT','BNBUSDT'];
+// ══════════════════════════════════════════
+const SYMBOLS  = ['BTCUSDC','BTCUSDT','ETHUSDC','ETHUSDT','SOLUSDT','BNBUSDT'];
+const TIMEFRAMES = [
+  { label:'1分',  interval:'1m'  },
+  { label:'3分',  interval:'3m'  },
+  { label:'5分',  interval:'5m'  },
+  { label:'15分', interval:'15m' },
+  { label:'30分', interval:'30m' },
+  { label:'1小时',interval:'1h'  },
+  { label:'2小时',interval:'2h'  },
+  { label:'4小时',interval:'4h'  },
+  { label:'8小时',interval:'8h'  },
+  { label:'1天',  interval:'1d'  },
+  { label:'1周',  interval:'1w'  },
+];
 const INITIAL_BALANCE = 100_000;
-const TAKER_FEE = 0.0005;
-const MAKER_FEE = 0.0002;
-const SLIPPAGE = 0.0005;
+const TAKER_FEE = 0.0005, MAKER_FEE = 0.0002, SLIPPAGE = 0.0005;
 
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 // STATE
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 let curSym = 'BTCUSDC';
-let prices = {};
-let prevPrices = {};
-let tickCounts = {};
-let countReset = Date.now();
-let ws;
-
-// Account (persisted in localStorage)
-function loadAccount() {
-  try { return JSON.parse(localStorage.getItem('account')) || null; } catch { return null; }
-}
-function saveAccount(acc) {
-  localStorage.setItem('account', JSON.stringify(acc));
-}
-function getAccount() {
-  let acc = loadAccount();
-  if (!acc) acc = { balance: INITIAL_BALANCE, positions: {}, orders: [], history: [] };
-  return acc;
-}
-
-// Candle data per symbol
-const candles = {}; // sym -> [{time,open,high,low,close}]
-
-// ════════════════════════════════════════
-// CHART
-// ════════════════════════════════════════
+let curTf  = '1m';
+let prices = {}, prevPrices = {};
+let ws, wsReady = false;
 let chart, candleSeries;
+// live candle buffer (current incomplete candle per symbol per tf)
+const liveCandle = {}; // `${sym}_${tf}` -> {time,open,high,low,close}
+
+// ══════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════
 function initChart() {
   const el = document.getElementById('chart-wrap');
   chart = LightweightCharts.createChart(el, {
-    layout: { background: { color: '#0d1117' }, textColor: '#8b949e' },
-    grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    layout: { background:{ color:'#0d1117' }, textColor:'#8b949e' },
+    grid:   { vertLines:{ color:'#21262d' }, horzLines:{ color:'#21262d' } },
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-    timeScale: { timeVisible: true, secondsVisible: true, borderColor: '#30363d' },
-    rightPriceScale: { borderColor: '#30363d' },
+    timeScale: { timeVisible:true, secondsVisible: curTf==='1m', borderColor:'#30363d' },
+    rightPriceScale: { borderColor:'#30363d' },
   });
   candleSeries = chart.addCandlestickSeries({
-    upColor: '#3fb950', downColor: '#f85149',
-    borderUpColor: '#3fb950', borderDownColor: '#f85149',
-    wickUpColor: '#3fb950', wickDownColor: '#f85149',
+    upColor:'#3fb950', downColor:'#f85149',
+    borderUpColor:'#3fb950', borderDownColor:'#f85149',
+    wickUpColor:'#3fb950', wickDownColor:'#f85149',
   });
   new ResizeObserver(() => chart.resize(el.clientWidth, el.clientHeight)).observe(el);
 }
 
-// ════════════════════════════════════════
-// BINANCE WEBSOCKET (直连，无后端)
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
+// FETCH HISTORICAL KLINES (Binance REST API)
+// ══════════════════════════════════════════
+async function loadKlines(sym, interval) {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    // Try USDC endpoint, fallback to USDT
+    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=500`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(res.status);
+    const raw = await res.json();
+
+    const data = raw.map(k => ({
+      time:  Math.floor(k[0] / 1000),
+      open:  parseFloat(k[1]),
+      high:  parseFloat(k[2]),
+      low:   parseFloat(k[3]),
+      close: parseFloat(k[4]),
+    }));
+
+    candleSeries.setData(data);
+    chart.timeScale().fitContent();
+
+    // seed current price from last candle
+    if (data.length) {
+      const last = data[data.length - 1];
+      prices[sym] = last.close;
+      // init live candle buffer
+      liveCandle[`${sym}_${interval}`] = { ...last };
+      updatePriceDisplay(sym, last.close);
+    }
+  } catch(e) {
+    console.error('klines fetch error', e);
+  }
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// WEBSOCKET — Binance (ticker + kline stream)
+// ══════════════════════════════════════════
+function buildStreams() {
+  const sl = curSym.toLowerCase();
+  // subscribe all symbols ticker for price + current sym kline
+  const streams = SYMBOLS.map(s => `${s.toLowerCase()}@ticker`);
+  streams.push(`${sl}@kline_${curTf}`);
+  return streams.join('/');
+}
+
 function connectWS() {
-  const streams = SYMBOLS.flatMap(s => {
-    const sl = s.toLowerCase();
-    return [`${sl}@trade`, `${sl}@kline_1s`];
-  }).join('/');
-  const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+  if (ws) { ws.onclose = null; ws.close(); }
+  const url = `wss://stream.binance.com:9443/stream?streams=${buildStreams()}`;
   ws = new WebSocket(url);
-
-  ws.onopen = () => { document.getElementById('wsDot').className = 'ws-dot on'; };
-  ws.onclose = () => { document.getElementById('wsDot').className = 'ws-dot'; setTimeout(connectWS, 2000); };
+  ws.onopen = () => {
+    wsReady = true;
+    document.getElementById('wsDot').className = 'ws-dot on';
+  };
+  ws.onclose = () => {
+    wsReady = false;
+    document.getElementById('wsDot').className = 'ws-dot';
+    setTimeout(connectWS, 2000);
+  };
   ws.onerror = () => ws.close();
-
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    const d = msg.data;
+    const d = msg.data || {};
     const stream = msg.stream || '';
 
-    if (stream.includes('@trade')) {
-      const sym = d.s, price = +d.p;
-      processTick(sym, price, price, price);
-    } else if (stream.includes('@kline')) {
+    // 24h ticker — most accurate price (matches Binance app)
+    if (stream.includes('@ticker')) {
+      const sym = d.s;
+      const price = parseFloat(d.c); // last price
+      prevPrices[sym] = prices[sym];
+      prices[sym] = price;
+      checkOrders(sym, price, price, price);
+      if (sym === curSym) updatePriceDisplay(sym, price);
+    }
+
+    // kline — update chart candle
+    if (stream.includes('@kline')) {
       const k = d.k;
-      processTick(k.s, +k.c, +k.h, +k.l);
+      const sym = k.s;
+      const key = `${sym}_${k.i}`;
+      const candle = {
+        time:  Math.floor(k.t / 1000),
+        open:  parseFloat(k.o),
+        high:  parseFloat(k.h),
+        low:   parseFloat(k.l),
+        close: parseFloat(k.c),
+      };
+      liveCandle[key] = candle;
+      if (sym === curSym && k.i === curTf) {
+        candleSeries.update(candle);
+        // also use for order matching with wick precision
+        checkOrders(sym, candle.close, candle.high, candle.low);
+      }
     }
   };
 }
 
-function processTick(sym, price, high, low) {
-  prevPrices[sym] = prices[sym];
-  prices[sym] = price;
-  tickCounts[sym] = (tickCounts[sym] || 0) + 1;
-
-  // reset Hz counter every 5s
-  if (Date.now() - countReset > 5000) { tickCounts = {}; countReset = Date.now(); }
-
-  // update candle
-  const secTs = Math.floor(Date.now() / 1000);
-  if (!candles[sym]) candles[sym] = [];
-  const arr = candles[sym];
-  if (!arr.length || arr[arr.length-1].time !== secTs) {
-    arr.push({ time: secTs, open: price, high, low, close: price });
-    if (arr.length > 600) arr.shift();
-  } else {
-    const last = arr[arr.length-1];
-    last.high = Math.max(last.high, high);
-    last.low = Math.min(last.low, low);
-    last.close = price;
-  }
-
-  // check orders for this symbol
-  checkOrders(sym, price, high, low);
-
-  if (sym !== curSym) return;
-
-  // update header price
-  const el = document.getElementById('livePrice');
+function updatePriceDisplay(sym, price) {
   const prev = prevPrices[sym];
-  el.textContent = '$' + price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const el = document.getElementById('livePrice');
+  el.textContent = '$' + price.toLocaleString('en', { minimumFractionDigits:2, maximumFractionDigits:2 });
   el.className = 'live-price' + (prev && price > prev ? ' up' : prev && price < prev ? ' down' : '');
-  const elapsed = (Date.now() - countReset) / 1000;
-  const hz = elapsed > 0 ? (tickCounts[sym] || 0) / elapsed : 0;
-  document.getElementById('hzBadge').textContent = hz.toFixed(1) + ' Hz';
-
-  // update chart
-  candleSeries.setData(arr);
+  document.getElementById('subInfo').textContent = `${sym} · 实时`;
 }
 
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
+// SYMBOL & TIMEFRAME SWITCH
+// ══════════════════════════════════════════
+function buildSymTabs() {
+  document.getElementById('symTabs').innerHTML = SYMBOLS.map(s => {
+    const label = s.replace('USDC','/C').replace('USDT','/T');
+    return `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${label}</div>`;
+  }).join('');
+}
+
+function buildTfBar() {
+  document.getElementById('tfBar').innerHTML = TIMEFRAMES.map(tf =>
+    `<button class="tf-btn${tf.interval===curTf?' active':''}" onclick="switchTf('${tf.interval}')">${tf.label}</button>`
+  ).join('');
+}
+
+async function switchSym(sym) {
+  curSym = sym;
+  buildSymTabs();
+  await loadKlines(sym, curTf);
+  connectWS(); // reconnect with new symbol stream
+}
+
+async function switchTf(interval) {
+  curTf = interval;
+  buildTfBar();
+  // update secondsVisible
+  chart.applyOptions({ timeScale: { secondsVisible: interval === '1m' } });
+  await loadKlines(curSym, interval);
+  connectWS(); // reconnect with new kline stream
+}
+
+// ══════════════════════════════════════════
 // MATCHING ENGINE (穿针 + 滑点)
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 function applySlippage(price, side, size) {
   const impact = SLIPPAGE + (size / 10) * 0.0001;
   return side === 'buy' ? price * (1 + impact) : price * (1 - impact);
@@ -285,259 +357,199 @@ function checkOrders(sym, price, high, low) {
 
   for (const o of acc.orders) {
     if (o.symbol !== sym) continue;
-
-    // limit orders — wick penetration
     if (o.type === 'limit') {
-      if (o.side === 'buy' && low <= o.price) {
-        toFill.push({ order: o, fillPrice: applySlippage(o.price, 'buy', o.size), fee: MAKER_FEE });
-      } else if (o.side === 'sell' && high >= o.price) {
-        toFill.push({ order: o, fillPrice: applySlippage(o.price, 'sell', o.size), fee: MAKER_FEE });
-      }
+      if (o.side === 'buy'  && low  <= o.price) toFill.push({ o, fp: applySlippage(o.price,'buy',o.size),  fee: MAKER_FEE });
+      if (o.side === 'sell' && high >= o.price) toFill.push({ o, fp: applySlippage(o.price,'sell',o.size), fee: MAKER_FEE });
     } else if (o.type === 'market') {
-      toFill.push({ order: o, fillPrice: applySlippage(price, o.side, o.size), fee: TAKER_FEE });
+      toFill.push({ o, fp: applySlippage(price, o.side, o.size), fee: TAKER_FEE });
     }
-
-    // TP/SL on existing orders
+    // TP
     if (o.tp) {
       const tp = o.tp;
-      if ((o.side === 'buy' && high >= tp) || (o.side === 'sell' && low <= tp)) {
-        const closeO = { ...o, side: o.side === 'buy' ? 'sell' : 'buy', price: tp, type: 'limit', tp: null, sl: null };
-        toFill.push({ order: closeO, fillPrice: tp, fee: MAKER_FEE, closeOf: o.id });
+      if ((o.side==='buy'&&high>=tp)||(o.side==='sell'&&low<=tp)) {
+        const co = {...o, side:o.side==='buy'?'sell':'buy', price:tp, type:'limit', tp:null, sl:null};
+        toFill.push({ o:co, fp:tp, fee:MAKER_FEE, closeOf:o.id });
       }
     }
+    // SL
     if (o.sl) {
       const sl = o.sl;
-      if ((o.side === 'buy' && low <= sl) || (o.side === 'sell' && high >= sl)) {
-        const closeO = { ...o, side: o.side === 'buy' ? 'sell' : 'buy', price: sl, type: 'market', tp: null, sl: null };
-        toFill.push({ order: closeO, fillPrice: applySlippage(sl, closeO.side, o.size), fee: TAKER_FEE, closeOf: o.id });
+      if ((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)) {
+        const co = {...o, side:o.side==='buy'?'sell':'buy', price:sl, type:'market', tp:null, sl:null};
+        toFill.push({ o:co, fp:applySlippage(sl,co.side,o.size), fee:TAKER_FEE, closeOf:o.id });
       }
     }
   }
 
-  for (const { order, fillPrice, fee, closeOf } of toFill) {
-    fillOrder(acc, order, fillPrice, fee);
-    if (closeOf) acc.orders = acc.orders.filter(o => o.id !== closeOf);
+  for (const { o, fp, fee, closeOf } of toFill) {
+    fillOrder(acc, o, fp, fee);
+    if (closeOf) acc.orders = acc.orders.filter(x => x.id !== closeOf);
     changed = true;
-    toast(`✅ ${order.side.toUpperCase()} ${order.symbol} ${order.size} @ $${fillPrice.toFixed(2)}`);
+    toast(`✅ ${o.side==='buy'?'买入':'卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);
   }
-
-  if (changed) saveAccount(acc);
+  if (changed) { saveAccount(acc); if (activeTab==='account') renderAccount(); }
 }
 
-function fillOrder(acc, order, fillPrice, feeRate) {
-  const cost = fillPrice * order.size;
-  const fee = cost * feeRate;
-  const sym = order.symbol;
-
-  if (order.side === 'buy') {
-    acc.balance -= (cost + fee);
-    if (!acc.positions[sym]) acc.positions[sym] = { size: 0, entryPrice: 0, side: 'long' };
-    const pos = acc.positions[sym];
-    const total = pos.size + order.size;
-    pos.entryPrice = (pos.size * pos.entryPrice + order.size * fillPrice) / total;
-    pos.size = total;
-    pos.side = 'long';
+function fillOrder(acc, o, fp, feeRate) {
+  const cost = fp * o.size, fee = cost * feeRate, sym = o.symbol;
+  if (o.side === 'buy') {
+    acc.balance -= cost + fee;
+    if (!acc.positions[sym]) acc.positions[sym] = { size:0, entryPrice:0, side:'long' };
+    const p = acc.positions[sym];
+    const tot = p.size + o.size;
+    p.entryPrice = (p.size * p.entryPrice + o.size * fp) / tot;
+    p.size = tot; p.side = 'long';
   } else {
-    if (acc.positions[sym] && acc.positions[sym].size > 0) {
-      const pos = acc.positions[sym];
-      const pnl = (fillPrice - pos.entryPrice) * order.size;
-      acc.balance += fillPrice * order.size - fee + pnl;
-      pos.size -= order.size;
-      if (pos.size <= 0.000001) delete acc.positions[sym];
+    if (acc.positions[sym]?.size > 0) {
+      const p = acc.positions[sym];
+      acc.balance += fp * o.size - fee + (fp - p.entryPrice) * o.size;
+      p.size -= o.size;
+      if (p.size < 0.000001) delete acc.positions[sym];
     } else {
       acc.balance -= fee;
-      if (!acc.positions[sym]) acc.positions[sym] = { size: 0, entryPrice: 0, side: 'short' };
-      const pos = acc.positions[sym];
-      const total = pos.size + order.size;
-      pos.entryPrice = (pos.size * pos.entryPrice + order.size * fillPrice) / total;
-      pos.size = total;
-      pos.side = 'short';
+      if (!acc.positions[sym]) acc.positions[sym] = { size:0, entryPrice:0, side:'short' };
+      const p = acc.positions[sym];
+      const tot = p.size + o.size;
+      p.entryPrice = (p.size * p.entryPrice + o.size * fp) / tot;
+      p.size = tot; p.side = 'short';
     }
   }
-
-  acc.history.push({
-    symbol: order.symbol, side: order.side,
-    size: order.size, fillPrice, fee, time: Date.now()
-  });
-  acc.orders = acc.orders.filter(o => o.id !== order.id);
+  acc.history.push({ symbol:sym, side:o.side, size:o.size, fillPrice:fp, fee, time:Date.now() });
+  acc.orders = acc.orders.filter(x => x.id !== o.id);
 }
 
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
+// ACCOUNT
+// ══════════════════════════════════════════
+function getAccount() {
+  try { return JSON.parse(localStorage.getItem('account')) || mkAcc(); } catch { return mkAcc(); }
+}
+function mkAcc() { return { balance:INITIAL_BALANCE, positions:{}, orders:[], history:[] }; }
+function saveAccount(a) { localStorage.setItem('account', JSON.stringify(a)); }
+
+// ══════════════════════════════════════════
 // UI — Order
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 function togglePriceField() {
   document.getElementById('priceField').style.display =
     document.getElementById('oType').value === 'market' ? 'none' : '';
 }
 
 function placeOrder(side) {
-  const type = document.getElementById('oType').value;
+  const type  = document.getElementById('oType').value;
   const price = parseFloat(document.getElementById('oPrice').value) || 0;
-  const size = parseFloat(document.getElementById('oSize').value);
-  const tp = parseFloat(document.getElementById('oTp').value) || null;
-  const sl = parseFloat(document.getElementById('oSl').value) || null;
-
-  if (!size || size <= 0) { toast('请输入数量', 1); return; }
-  if (type === 'limit' && price <= 0) { toast('请输入价格', 1); return; }
-
+  const size  = parseFloat(document.getElementById('oSize').value);
+  const tp    = parseFloat(document.getElementById('oTp').value) || null;
+  const sl    = parseFloat(document.getElementById('oSl').value) || null;
+  if (!size||size<=0) { toast('请输入数量',1); return; }
+  if (type==='limit'&&price<=0) { toast('请输入价格',1); return; }
   const acc = getAccount();
-  const order = {
-    id: Date.now() + Math.random().toString(36).slice(2),
-    symbol: curSym, side, type, price, size,
-    tp, sl, time: Date.now()
-  };
-  acc.orders.push(order);
-
-  // market: fill immediately
-  if (type === 'market') {
+  const o = { id: Date.now()+Math.random().toString(36).slice(2), symbol:curSym, side, type, price, size, tp, sl, time:Date.now() };
+  acc.orders.push(o);
+  if (type==='market') {
     const cur = prices[curSym];
-    if (cur) fillOrder(acc, order, applySlippage(cur, side, size), TAKER_FEE);
+    if (cur) fillOrder(acc, o, applySlippage(cur,side,size), TAKER_FEE);
   }
-
   saveAccount(acc);
-  toast(`${side === 'buy' ? '买单' : '卖单'}已挂 ✓`);
+  toast(`${side==='buy'?'买单':'卖单'} 已挂 ✓`);
   document.getElementById('oSize').value = '';
 }
 
-// ════════════════════════════════════════
-// UI — Account
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
+// UI — Account panel
+// ══════════════════════════════════════════
 function renderAccount() {
   const acc = getAccount();
   let pnl = 0;
   for (const [sym, pos] of Object.entries(acc.positions)) {
     const p = prices[sym] || 0;
-    pnl += pos.side === 'long'
-      ? (p - pos.entryPrice) * pos.size
-      : (pos.entryPrice - p) * pos.size;
+    pnl += pos.side==='long' ? (p-pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
   }
-
   document.getElementById('statGrid').innerHTML = `
     <div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div>
     <div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div>
     <div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div>
-    <div class="stat"><div class="lbl">初始资金</div><div class="val">$${INITIAL_BALANCE.toLocaleString()}</div></div>
-  `;
+    <div class="stat"><div class="lbl">初始资金</div><div class="val">$${INITIAL_BALANCE.toLocaleString()}</div></div>`;
 
-  const posDiv = document.getElementById('posDiv');
-  const posKeys = Object.keys(acc.positions);
-  posDiv.innerHTML = posKeys.length ? posKeys.map(sym => {
-    const pos = acc.positions[sym];
-    const p = prices[sym] || 0;
-    const pnl = pos.side === 'long' ? (p - pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
-    return `<div class="pos-row">
-      <b style="color:var(--accent)">${sym}</b>
-      <span style="color:var(--muted);margin:0 4px">${pos.side.toUpperCase()}</span>
-      ${pos.size.toFixed(4)} @ $${pos.entryPrice.toFixed(2)}
-      <span class="${pnl>=0?'pos':'neg'}" style="float:right">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>
-    </div>`;
-  }).join('') : '<div class="empty">暂无持仓</div>';
+  document.getElementById('posDiv').innerHTML = Object.keys(acc.positions).length
+    ? Object.entries(acc.positions).map(([sym,pos]) => {
+        const p = prices[sym]||0;
+        const pnl2 = pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;
+        return `<div class="pos-row"><b style="color:var(--accent)">${sym}</b>
+          <span style="color:var(--muted);margin:0 3px">${pos.side.toUpperCase()}</span>
+          ${pos.size.toFixed(4)} @ $${pos.entryPrice.toFixed(2)}
+          <span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`;
+      }).join('')
+    : '<div class="empty">暂无持仓</div>';
 
-  const ordDiv = document.getElementById('ordDiv');
-  ordDiv.innerHTML = acc.orders.length ? acc.orders.map(o => `
-    <div class="ord-row">
-      <div>
-        <span style="color:${o.side==='buy'?'var(--green)':'var(--red)'}"><b>${o.side.toUpperCase()}</b></span>
-        <span style="color:var(--muted);margin:0 3px;font-size:10px">${o.symbol}</span>
-        ${o.size}@$${o.price}
-        ${o.tp?`<span style="color:var(--green);font-size:10px"> TP:${o.tp}</span>`:''}
-        ${o.sl?`<span style="color:var(--red);font-size:10px"> SL:${o.sl}</span>`:''}
-      </div>
-      <button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button>
-    </div>`).join('') : '<div class="empty">暂无挂单</div>';
+  document.getElementById('ordDiv').innerHTML = acc.orders.length
+    ? acc.orders.map(o => `<div class="ord-row">
+        <div><span style="color:${o.side==='buy'?'var(--green)':'var(--red)'}"><b>${o.side==='buy'?'买':'卖'}</b></span>
+        <span style="color:var(--muted);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}
+        ${o.tp?`<span style="color:var(--green);font-size:9px"> TP:${o.tp}</span>`:''}
+        ${o.sl?`<span style="color:var(--red);font-size:9px"> SL:${o.sl}</span>`:''}
+        </div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join('')
+    : '<div class="empty">暂无挂单</div>';
 }
 
 function cancelOrder(id) {
   const acc = getAccount();
   acc.orders = acc.orders.filter(o => o.id !== id);
-  saveAccount(acc);
-  renderAccount();
-  toast('订单已撤销');
+  saveAccount(acc); renderAccount(); toast('订单已撤销');
 }
 
 function resetAccount() {
   if (!confirm('确认重置？所有数据清空')) return;
-  localStorage.removeItem('account');
-  toast('账户已重置');
-  renderAccount();
+  localStorage.removeItem('account'); toast('账户已重置'); renderAccount();
 }
 
-// ════════════════════════════════════════
-// UI — History
-// ════════════════════════════════════════
 function renderHistory() {
   const acc = getAccount();
   const el = document.getElementById('histDiv');
-  if (!acc.history.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
-  el.innerHTML = [...acc.history].reverse().slice(0, 50).map(h => {
-    const t = new Date(h.time).toLocaleTimeString('zh');
-    return `<div class="hist-row">
-      <span style="color:${h.side==='buy'?'var(--green)':'var(--red)'}">${h.side.toUpperCase()}</span>
+  if (!acc.history.length) { el.innerHTML='<div class="empty">暂无记录</div>'; return; }
+  el.innerHTML = [...acc.history].reverse().slice(0,50).map(h =>
+    `<div class="hist-row">
+      <span style="color:${h.side==='buy'?'var(--green)':'var(--red)'}">${h.side==='buy'?'买':'卖'}</span>
       <span style="color:var(--muted)">${h.symbol}</span>
-      <span>${h.size}</span>
-      <span>@$${h.fillPrice.toFixed(2)}</span>
-      <span style="color:var(--muted);margin-left:auto">${t}</span>
-    </div>`;
-  }).join('');
+      <span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span>
+      <span style="color:var(--muted);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span>
+    </div>`).join('');
 }
 
-// ════════════════════════════════════════
-// TABS & SYMBOLS
-// ════════════════════════════════════════
-function buildSymTabs() {
-  document.getElementById('symTabs').innerHTML = SYMBOLS.map(s =>
-    `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${s.replace('USDT','/T').replace('USDC','/C')}</div>`
-  ).join('');
-}
-
-function switchSym(sym) {
-  curSym = sym;
-  buildSymTabs();
-  candleSeries.setData(candles[sym] || []);
-  const p = prices[sym];
-  document.getElementById('livePrice').textContent = p
-    ? '$' + p.toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2})
-    : '--';
-}
-
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
 let activeTab = 'order';
 function switchTab(name, el) {
   activeTab = name;
-  ['order','account','history'].forEach(t => {
-    document.getElementById('pane-'+t).style.display = t===name ? '' : 'none';
-  });
+  ['order','account','history'].forEach(t => document.getElementById('pane-'+t).style.display = t===name?'':'none');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  if (name === 'account') renderAccount();
-  if (name === 'history') renderHistory();
+  if (name==='account') renderAccount();
+  if (name==='history') renderHistory();
 }
 
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 // TOAST
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 let toastTimer;
 function toast(msg, isErr=0) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.background = isErr ? '#da3633' : '#1f6feb';
-  el.style.display = 'block';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.style.display='none', 2500);
+  el.textContent = msg; el.style.background = isErr?'#da3633':'#1f6feb';
+  el.style.display = 'block'; clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.style.display='none', 2500);
 }
 
-// ════════════════════════════════════════
-// AUTO REFRESH account tab every 3s
-// ════════════════════════════════════════
-setInterval(() => {
-  if (activeTab === 'account') renderAccount();
-}, 3000);
+// auto-refresh account every 3s
+setInterval(() => { if (activeTab==='account') renderAccount(); }, 3000);
 
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 // BOOT
-// ════════════════════════════════════════
+// ══════════════════════════════════════════
 initChart();
 buildSymTabs();
-connectWS();
+buildTfBar();
+loadKlines(curSym, curTf).then(() => connectWS());
 </script>
 </body>
 </html>
