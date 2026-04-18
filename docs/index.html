@@ -1325,6 +1325,7 @@ function updatePriceDisplay(sym,price,chg){
 function openSymModal(){
   modalExchange=curExchange;
   document.getElementById('sym-modal').style.display='flex';
+  _symSortState=0;
   buildModalExTabs();
   renderSymList('');
   startPanelRefresh();
@@ -1343,16 +1344,25 @@ function switchModalEx(id){
   renderSymList(document.getElementById('symSearch').value);
 }
 function filterSymbols(){renderSymList(document.getElementById('symSearch').value);}
+let _symSortState = 0; // 0=original, 1=desc, 2=asc
+function cycleSortChg(){
+  _symSortState = (_symSortState + 1) % 3;
+  renderSymList(document.getElementById('symSearch')?.value || '');
+}
 function renderSymList(q){
   const ex=EXCHANGES[modalExchange];
   const query=q.toLowerCase().trim();
+  const sortIcons=['', ' ↓', ' ↑'];
+  const sortLabel='24h涨跌' + sortIcons[_symSortState];
   let html='';
   for(const[cat,syms] of Object.entries(ex.categories)){
-    const filtered=syms.filter(s=>!query||ex.fmtDisplay(s).toLowerCase().includes(query)||s.toLowerCase().includes(query));
+    let filtered=syms.filter(s=>!query||ex.fmtDisplay(s).toLowerCase().includes(query)||s.toLowerCase().includes(query));
     if(!filtered.length) continue;
+    if(_symSortState===1) filtered=[...filtered].sort((a,b)=>(changes[b]||0)-(changes[a]||0));
+    else if(_symSortState===2) filtered=[...filtered].sort((a,b)=>(changes[a]||0)-(changes[b]||0));
     html+=`<div class="cat-title">${cat}</div>
 <div class="sym-grid">
-<div class="sym-list-hdr"><span>币种</span><span style="text-align:right">最新价格</span><span style="text-align:right">24h涨跌</span></div>`;
+<div class="sym-list-hdr"><span>币种</span><span style="text-align:right">最新价格</span><span style="text-align:right;cursor:pointer;user-select:none;color:var(--ac)" onclick="cycleSortChg()">${sortLabel}</span></div>`;
     for(const sym of filtered){
       const p=prices[sym],chg=changes[sym];
       const isActive=sym===curSym&&modalExchange===curExchange;
