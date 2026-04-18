@@ -836,6 +836,93 @@ function updateSeriesCandle(c){
   if(chartType==='line'||chartType==='area') candleSeries.update({time:c.time,value:c.close});
   else candleSeries.update(c);
 }
+
+// ════════════════════════════════════════════════════════
+// CHART TYPE SWITCHING
+// ════════════════════════════════════════════════════════
+function switchChartType(type) {
+  chartType = type;
+  document.querySelectorAll('.ct-btn').forEach(b => b.classList.toggle('active', b.dataset.ct === type));
+  if (mainChart && mainSeries) {
+    mainChart.removeSeries(mainSeries);
+    mainSeries = null;
+  }
+  candleSeries = null;
+  lineSeries = null;
+  areaSeries = null;
+  barSeries = null;
+  createMainSeries();
+  if (chartData && chartData.length) setSeriesData(chartData);
+}
+
+// ════════════════════════════════════════════════════════
+// ZOOM
+// ════════════════════════════════════════════════════════
+function zoomIn() {
+  if (!mainChart) return;
+  var r = mainChart.timeScale().getVisibleLogicalRange();
+  if (!r) return;
+  var mid = (r.from + r.to) / 2, half = (r.to - r.from) / 4;
+  mainChart.timeScale().setVisibleLogicalRange({from: mid - half, to: mid + half});
+}
+function zoomOut() {
+  if (!mainChart) return;
+  var r = mainChart.timeScale().getVisibleLogicalRange();
+  if (!r) return;
+  var mid = (r.from + r.to) / 2, half = (r.to - r.from);
+  mainChart.timeScale().setVisibleLogicalRange({from: mid - half, to: mid + half});
+}
+
+// ════════════════════════════════════════════════════════
+// FULLSCREEN
+// ════════════════════════════════════════════════════════
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(function(){});
+    _isFullscreen = true;
+  } else {
+    document.exitFullscreen && document.exitFullscreen();
+    _isFullscreen = false;
+  }
+  var b = document.getElementById('fsBtn');
+  if (b) b.textContent = _isFullscreen ? '\u21d3' : '\u2195';
+}
+
+// ════════════════════════════════════════════════════════
+// THEME
+// ════════════════════════════════════════════════════════
+function toggleTheme() {
+  _isDark = !_isDark;
+  var bg = _isDark ? '#0d1117' : '#ffffff';
+  var fg = _isDark ? '#8b949e' : '#333333';
+  var gr = _isDark ? '#21262d' : '#e0e0e0';
+  document.body.style.background = _isDark ? '#0d1117' : '#f0f2f5';
+  if (mainChart) mainChart.applyOptions({layout:{background:{color:bg},textColor:fg},grid:{vertLines:{color:gr},horzLines:{color:gr}}});
+  if (subChart) subChart.applyOptions({layout:{background:{color:bg},textColor:fg},grid:{vertLines:{color:gr},horzLines:{color:gr}}});
+  var b = document.getElementById('themeBtn');
+  if (b) b.textContent = _isDark ? '\u263d' : '\u2600';
+}
+
+// ════════════════════════════════════════════════════════
+// EQUITY CURVE
+// ════════════════════════════════════════════════════════
+function drawEquityCurve() {
+  if (!mainChart || !tradeHistory || !tradeHistory.length) return;
+  try {
+    if (window._equitySeries) { mainChart.removeSeries(window._equitySeries); window._equitySeries = null; }
+    var pts = [], bal = 100000;
+    tradeHistory.forEach(function(t) {
+      bal += (t.pnl || 0);
+      pts.push({time: Math.floor((t.closeTime||t.time||Date.now())/1000), value: bal});
+    });
+    if (pts.length < 2) return;
+    pts.sort(function(a,b){return a.time-b.time;});
+    window._equitySeries = mainChart.addLineSeries({color:'#f0a500',lineWidth:2,priceScaleId:'equity',lastValueVisible:false,priceLineVisible:false});
+    mainChart.priceScale('equity').applyOptions({scaleMargins:{top:0.7,bottom:0},visible:false});
+    window._equitySeries.setData(pts);
+  } catch(e) { console.warn('drawEquityCurve', e); }
+}
+
 function initCharts(){
   mainChart=LightweightCharts.createChart(document.getElementById('main-chart'),{
     layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
