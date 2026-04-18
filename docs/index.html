@@ -98,6 +98,16 @@ input:focus,select:focus{border-color:var(--ac)}
 .xbtn{background:none;border:1px solid var(--rd);color:var(--rd);border-radius:3px;padding:1px 5px;cursor:pointer;font-size:10px}
 .empty{color:var(--mu);font-size:12px;text-align:center;padding:12px 0}
 .hist-row{font-size:11px;padding:4px 0;border-bottom:1px solid #21262d;display:flex;gap:5px;align-items:center}
+/* Orderbook */
+.book-hdr{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);padding:4px 2px;border-bottom:1px solid var(--bd);margin-bottom:2px}
+.book-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:2px 2px;font-size:11px;position:relative;cursor:pointer}
+.book-row:hover{background:#ffffff08}
+.book-row .depth-bar{position:absolute;top:0;bottom:0;right:0;opacity:.18;pointer-events:none}
+.book-mid-price{text-align:center;padding:5px 2px;font-size:14px;font-weight:700;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd);margin:3px 0}
+/* Trades */
+.trade-hdr{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);padding:4px 2px;border-bottom:1px solid var(--bd);margin-bottom:2px}
+.trade-row{display:flex;justify-content:space-between;padding:2px 2px;font-size:11px}
+.trade-row:hover{background:#ffffff05}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:6px;font-size:12px;display:none;z-index:999;color:#fff;white-space:nowrap}
 
 /* Symbol picker modal */
@@ -216,6 +226,8 @@ input:focus,select:focus{border-color:var(--ac)}
   <div class="panel">
     <div class="tabs">
       <div class="tab active" onclick="switchTab('order',this)">下单</div>
+      <div class="tab" onclick="switchTab('book',this)">盘口</div>
+      <div class="tab" onclick="switchTab('trades',this)">成交</div>
       <div class="tab" onclick="switchTab('account',this)">账户</div>
       <div class="tab" onclick="switchTab('history',this)">记录</div>
     </div>
@@ -234,6 +246,18 @@ input:focus,select:focus{border-color:var(--ac)}
         <button class="btn btn-sell" onclick="placeOrder('sell')">卖/做空</button>
       </div>
       <button class="btn-sm" onclick="resetAccount()">⚠ 重置账户</button>
+    </div>
+    <!-- 盘口 -->
+    <div class="tab-body" id="pane-book" style="display:none;padding:6px 8px">
+      <div class="book-hdr"><span>价格</span><span>数量</span><span style="text-align:right">成交额</span></div>
+      <div id="book-asks"></div>
+      <div class="book-mid-price" id="book-mid-price">--</div>
+      <div id="book-bids"></div>
+    </div>
+    <!-- 成交 -->
+    <div class="tab-body" id="pane-trades" style="display:none;padding:6px 8px">
+      <div class="trade-hdr"><span>价格</span><span>数量</span><span>时间</span></div>
+      <div id="trades-list"><div class="empty">等待成交数据...</div></div>
     </div>
     <div class="tab-body" id="pane-account" style="display:none">
       <div class="stat-grid" id="statGrid"></div>
@@ -291,12 +315,19 @@ const EXCHANGES = {
     },
     buildWS(syms,tf){
       const sl=syms[0].toLowerCase();
-      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${tf}`].join('/');
+      const streams=[
+        ...syms.map(s=>`${s.toLowerCase()}@ticker`),
+        `${sl}@kline_${tf}`,
+        `${sl}@depth20@100ms`,
+        `${sl}@aggTrade`,
+      ].join('/');
       return `wss://stream.binance.com:9443/stream?streams=${streams}`;
     },
     parseWS(data,stream){
       if(stream.includes('@ticker')) return {type:'ticker',sym:data.s,price:+data.c,chg:+data.P};
       if(stream.includes('@kline')){const k=data.k;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
+      if(stream.includes('@depth')){return{type:'depth',bids:data.bids.map(b=>[+b[0],+b[1]]).filter(b=>b[1]>0),asks:data.asks.map(a=>[+a[0],+a[1]]).filter(a=>a[1]>0)};}
+      if(stream.includes('@aggTrade')){return{type:'trade',price:data.p,qty:data.q,isBuy:!data.m,time:data.T};}
       return null;
     },
     categories:{
@@ -323,12 +354,19 @@ const EXCHANGES = {
     },
     buildWS(syms,tf){return 'wss://ws.okx.com:8443/ws/v5/public';},
     wsOnOpen(ws,syms,tf){
-      const args=[...syms.map(s=>({channel:'tickers',instId:s})),{channel:`candle${tf}`,instId:syms[0]}];
+      const args=[
+        ...syms.map(s=>({channel:'tickers',instId:s})),
+        {channel:`candle${tf}`,instId:syms[0]},
+        {channel:'books5',instId:syms[0]},
+        {channel:'trades',instId:syms[0]},
+      ];
       ws.send(JSON.stringify({op:'subscribe',args}));
     },
     parseWS(data){
       if(data.arg?.channel==='tickers'&&data.data?.[0]){const d=data.data[0];return{type:'ticker',sym:d.instId,price:+d.last,chg:+d.sodUtc8?((+d.last-+d.sodUtc8)/+d.sodUtc8*100):0};}
       if(data.arg?.channel?.startsWith('candle')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.arg.instId,tf:data.arg.channel.replace('candle',''),time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]};}
+      if(data.arg?.channel==='books5'&&data.data?.[0]){const d=data.data[0];return{type:'depth',bids:d.bids.map(b=>[+b[0],+b[1]]),asks:d.asks.map(a=>[+a[0],+a[1]])};}
+      if(data.arg?.channel==='trades'&&data.data?.[0]){const d=data.data[0];return{type:'trade',price:d.px,qty:d.sz,isBuy:d.side==='buy',time:+d.ts};}
       return null;
     },
     categories:{
@@ -354,12 +392,19 @@ const EXCHANGES = {
     },
     buildWS(syms,tf){return 'wss://stream.bybit.com/v5/public/linear';},
     wsOnOpen(ws,syms,tf){
-      const topics=[...syms.map(s=>`tickers.${s}`),`kline.${tf}.${syms[0]}`];
+      const topics=[
+        ...syms.map(s=>`tickers.${s}`),
+        `kline.${tf}.${syms[0]}`,
+        `orderbook.20.${syms[0]}`,
+        `publicTrade.${syms[0]}`,
+      ];
       ws.send(JSON.stringify({op:'subscribe',args:topics}));
     },
     parseWS(data){
       if(data.topic?.startsWith('tickers.')&&data.data){const d=data.data;return{type:'ticker',sym:d.symbol,price:+d.lastPrice,chg:+d.price24hPcnt*100};}
       if(data.topic?.startsWith('kline.')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.topic.split('.')[2],tf:data.topic.split('.')[1],time:Math.floor(k.start/1000),open:+k.open,high:+k.high,low:+k.low,close:+k.close,volume:+k.volume};}
+      if(data.topic?.startsWith('orderbook.')&&data.data){const d=data.data;return{type:'depth',bids:(d.b||[]).map(b=>[+b[0],+b[1]]),asks:(d.a||[]).map(a=>[+a[0],+a[1]])};}
+      if(data.topic?.startsWith('publicTrade.')&&data.data?.[0]){const t=data.data[0];return{type:'trade',price:t.p,qty:t.v,isBuy:t.S==='Buy',time:t.T};}
       return null;
     },
     categories:{
@@ -395,6 +440,8 @@ let currentTool='cursor', drawings=[], drawingInProgress=null;
 let canvas, ctx, activeTab='order';
 let maSettings=[{period:7,color:'#f6c90e'},{period:25,color:'#2962ff'},{period:99,color:'#ff6d00'}];
 let modalExchange='binance';
+let orderBook={bids:[],asks:[]};
+let recentTrades=[];
 
 // ════════════════════════════════════════════════════════
 // CHART INIT
@@ -539,10 +586,19 @@ function connectWS(){
       prices[parsed.sym]=parsed.price;
       changes[parsed.sym]=parsed.chg||0;
       checkOrders(parsed.sym,parsed.price,parsed.price,parsed.price);
-      if(parsed.sym===curSym) updatePriceDisplay(parsed.sym,parsed.price,parsed.chg||0);
-      // update price in sym picker if open
+      if(parsed.sym===curSym){updatePriceDisplay(parsed.sym,parsed.price,parsed.chg||0);renderBookMidPrice();}
       const el=document.getElementById('sp_'+parsed.sym);
       if(el){el.querySelector('.sprice').textContent='$'+parsed.price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});const c=parsed.chg||0;el.querySelector('.schg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';el.querySelector('.schg').style.color=c>=0?'var(--gn)':'var(--rd)';}
+    }
+    if(parsed.type==='depth'){
+      orderBook.bids=parsed.bids.sort((a,b)=>b[0]-a[0]);
+      orderBook.asks=parsed.asks.sort((a,b)=>a[0]-b[0]);
+      renderOrderBook();
+    }
+    if(parsed.type==='trade'){
+      recentTrades.unshift(parsed);
+      if(recentTrades.length>200) recentTrades.pop();
+      renderTrades();
     }
     if(parsed.type==='kline'&&parsed.sym===curSym){
       const candle={time:parsed.time,open:parsed.open,high:parsed.high,low:parsed.low,close:parsed.close,volume:parsed.volume};
@@ -612,6 +668,8 @@ async function selectSym(sym,exId){
     document.querySelectorAll('.ex-tab').forEach((el,i)=>{el.classList.toggle('active',['binance','okx','bybit'][i]===exId);});
   }
   curSym=sym;
+  orderBook={bids:[],asks:[]};
+  recentTrades=[];
   document.getElementById('symBtnText').textContent=EXCHANGES[curExchange].fmtDisplay(sym);
   closeSymModal();
   await loadKlines(sym,curTfMin);
@@ -749,10 +807,83 @@ function renderHistory(){
   if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
   el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
 }
-function switchTab(name,el){activeTab=name;['order','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');if(name==='account')renderAccount();if(name==='history')renderHistory();}
+function switchTab(name,el){
+  activeTab=name;
+  ['order','book','trades','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(name==='account') renderAccount();
+  if(name==='history') renderHistory();
+  if(name==='book'){renderOrderBook();renderBookMidPrice();}
+  if(name==='trades') renderTrades();
+}
 let toastTimer;
 function toast(msg,isErr=0){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isErr?'#da3633':'#1f6feb';el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2500);}
 setInterval(()=>{if(activeTab==='account')renderAccount();},3000);
+
+// ════════════════════════════════════════════════════════
+// ORDER BOOK + TRADES RENDER
+// ════════════════════════════════════════════════════════
+function fmtPrice(p){return(+p).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtQty(q){const n=+q;return n>=1?n.toFixed(3):n.toFixed(5);}
+function fmtVol(p,q){const v=(+p)*(+q);return v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':v.toFixed(0);}
+
+function renderOrderBook(){
+  if(activeTab!=='book') return;
+  const{bids,asks}=orderBook;
+  if(!bids.length&&!asks.length) return;
+  const top15asks=asks.slice(0,15), top15bids=bids.slice(0,15);
+  const allQtys=[...top15asks,...top15bids].map(r=>r[1]);
+  const maxQ=Math.max(...allQtys)||1;
+
+  // asks: reverse so lowest ask (nearest to price) is at bottom
+  const askHtml=top15asks.slice().reverse().map(([p,q])=>{
+    const pct=Math.min(q/maxQ*100,100).toFixed(1);
+    return `<div class="book-row">
+      <span style="color:var(--rd)">${fmtPrice(p)}</span>
+      <span style="text-align:right;color:var(--mu)">${fmtQty(q)}</span>
+      <span style="text-align:right;color:var(--mu)">${fmtVol(p,q)}</span>
+      <div class="depth-bar" style="background:var(--rd);width:${pct}%"></div>
+    </div>`;
+  }).join('');
+
+  const bidHtml=top15bids.map(([p,q])=>{
+    const pct=Math.min(q/maxQ*100,100).toFixed(1);
+    return `<div class="book-row">
+      <span style="color:var(--gn)">${fmtPrice(p)}</span>
+      <span style="text-align:right;color:var(--mu)">${fmtQty(q)}</span>
+      <span style="text-align:right;color:var(--mu)">${fmtVol(p,q)}</span>
+      <div class="depth-bar" style="background:var(--gn);width:${pct}%"></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('book-asks').innerHTML=askHtml;
+  document.getElementById('book-bids').innerHTML=bidHtml;
+  renderBookMidPrice();
+}
+
+function renderBookMidPrice(){
+  const el=document.getElementById('book-mid-price');
+  if(!el) return;
+  const p=prices[curSym], c=changes[curSym]||0;
+  if(!p){el.textContent='--';return;}
+  el.innerHTML=`<span style="color:${c>=0?'var(--gn)':'var(--rd)'}">${fmtPrice(p)}</span>
+    <span style="font-size:11px;color:var(--mu);margin-left:8px">${c>=0?'↑':'↓'} ${Math.abs(c).toFixed(2)}%</span>`;
+}
+
+function renderTrades(){
+  if(activeTab!=='trades') return;
+  const el=document.getElementById('trades-list');
+  if(!recentTrades.length){el.innerHTML='<div class="empty">等待成交数据...</div>';return;}
+  el.innerHTML=recentTrades.slice(0,80).map(t=>{
+    const time=new Date(+t.time).toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return `<div class="trade-row">
+      <span style="color:${t.isBuy?'var(--gn)':'var(--rd)'}">${fmtPrice(t.price)}</span>
+      <span style="color:var(--mu)">${fmtQty(t.qty)}</span>
+      <span style="color:var(--mu)">${time}</span>
+    </div>`;
+  }).join('');
+}
 
 // ════════════════════════════════════════════════════════
 // KLINE CACHE + PRELOAD
