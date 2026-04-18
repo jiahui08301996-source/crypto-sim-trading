@@ -852,18 +852,6 @@ function switchChartType(type) {
     try { mainChart.removeSeries(candleSeries); } catch(e) {}
     candleSeries = null;
   }
-  if (mainChart && lineSeries) {
-    try { mainChart.removeSeries(lineSeries); } catch(e) {}
-    lineSeries = null;
-  }
-  if (mainChart && areaSeries) {
-    try { mainChart.removeSeries(areaSeries); } catch(e) {}
-    areaSeries = null;
-  }
-  if (mainChart && barSeries) {
-    try { mainChart.removeSeries(barSeries); } catch(e) {}
-    barSeries = null;
-  }
   createMainSeries();
   if (chartData && chartData.length) setSeriesData(chartData);
 }
