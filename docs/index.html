@@ -742,7 +742,7 @@ const EXCHANGES = {
     fmtSym: s => s,           // BTCUSDT as-is
     fmtDisplay: s => s.replace('USDC','/C').replace('USDT','/T').replace('BTC','BTC/'),
     async getKlines(sym,iv,startMs){
-      const url=`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
+      const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
       const r=await fetch(url); if(!r.ok) return null;
       const raw=await r.json();
       return raw.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:k[6]}));
@@ -755,7 +755,7 @@ const EXCHANGES = {
         `${sl}@depth20@100ms`,
         `${sl}@aggTrade`,
       ].join('/');
-      return `wss://stream.binance.com:9443/stream?streams=${streams}`;
+      return `wss://fstream.binance.com/stream?streams=${streams}`;
     },
     parseWS(data,stream){
       if(stream.includes('@ticker')) return {type:'ticker',sym:data.s,price:+data.c,chg:+data.P};
