@@ -984,7 +984,7 @@ function clearIndSeries(){
   Object.values(subSeries).flat().forEach(s=>{try{subChart.removeSeries(s)}catch{}});
   indSeries={};subSeries={
   hyperliquid: {
-    name:'Hyperliquid', color:'#00e5a0',
+    name:'Hyperliquid', color:'#00e5a0', skipPreload:true,
     type:'去中心化永续合约 · Layer 1',
     tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',1440:'1d'},
     fmtSym: s => s,
@@ -1027,7 +1027,7 @@ function clearIndSeries(){
     }
   },
   aster: {
-    name:'Aster DEX', color:'#a259ff',
+    name:'Aster DEX', color:'#a259ff', skipPreload:true,
     type:'去中心化永续合约 · DeFi',
     tfMap:{1:'1m',5:'5m',15:'15m',30:'30m',60:'1h',240:'4h',1440:'1d'},
     fmtSym: s => s,
@@ -2073,8 +2073,8 @@ async function startWith(exId) {
     // data is ready - jump straight to app
   } else {
     // Show loading UI
-    document.querySelector('.splash-ex-row').style.display = 'none';
-    document.querySelector('.splash-sub').style.display = 'none';
+    document.querySelectorAll('.splash-ex-row').forEach(el=>el.style.display='none');
+    const _splashSub=document.querySelector('.splash-sub');if(_splashSub)_splashSub.style.display='none';
     const loadDiv = document.getElementById('splash-loading');
     loadDiv.style.display = 'flex';
     if (exId === 'binance' && _autoPreloadPromise) {
@@ -2082,6 +2082,13 @@ async function startWith(exId) {
       document.getElementById('splashTitle').textContent = '即将就绪，正在完成预加载...';
       await _autoPreloadPromise;
     } else {
+      if (ex.skipPreload) {
+        // DEX: skip bulk preload, enter directly
+        document.getElementById('splashTitle').textContent = '连接 ' + ex.name + '中，请稍候...';
+        document.getElementById('splashPb').style.width = '100%';
+        document.getElementById('splashPct').textContent = '直接进入';
+        await new Promise(r => setTimeout(r, 300));
+      } else {
       const {hits, total} = await checkCacheStatus(exId);
       const fromCache = hits > 0;
       document.getElementById('splashTitle').textContent = fromCache
@@ -2098,6 +2105,7 @@ async function startWith(exId) {
       document.getElementById('splashSym').textContent = `${sym}  ${tfLabel}`;
     }
   });
+      } // end !skipPreload
     }
   }
 
