@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模拟交易平台</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Header ── */
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 10px 20px; display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+  header h1 { font-size: 16px; color: #58a6ff; font-weight: 600; }
+  .sym-tabs { display: flex; gap: 6px; }
+  .sym-tab { padding: 4px 12px; border-radius: 4px; border: 1px solid #30363d; background: #0d1117; color: #8b949e; cursor: pointer; font-size: 13px; transition: all .2s; }
+  .sym-tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+  .sym-tab:hover:not(.active) { border-color: #58a6ff; color: #58a6ff; }
+  .live-price { margin-left: auto; font-size: 22px; font-weight: 700; }
+  .live-price.up { color: #3fb950; }
+  .live-price.down { color: #f85149; }
+  .hz-badge { font-size: 11px; color: #8b949e; margin-left: 8px; }
+
+  /* ── Main layout ── */
+  .layout { display: flex; flex: 1; overflow: hidden; }
+  #chart-container { flex: 1; position: relative; }
+
+  /* ── Right panel ── */
+  .panel { width: 320px; background: #161b22; border-left: 1px solid #30363d; display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; }
+  .panel-tabs { display: flex; border-bottom: 1px solid #30363d; }
+  .panel-tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; cursor: pointer; color: #8b949e; border-bottom: 2px solid transparent; }
+  .panel-tab.active { color: #58a6ff; border-bottom-color: #58a6ff; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 14px; }
+
+  /* ── Order form ── */
+  .form-group { margin-bottom: 12px; }
+  label { font-size: 12px; color: #8b949e; display: block; margin-bottom: 4px; }
+  input, select { width: 100%; padding: 7px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 13px; outline: none; }
+  input:focus, select:focus { border-color: #58a6ff; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+  .btn { flex: 1; padding: 9px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-buy { background: #238636; color: #fff; }
+  .btn-sell { background: #da3633; color: #fff; }
+  .btn-reset { background: #30363d; color: #8b949e; font-size: 12px; padding: 6px; margin-top: 8px; width: 100%; }
+
+  /* ── Account ── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: #0d1117; border-radius: 8px; padding: 10px; border: 1px solid #30363d; }
+  .stat-label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .stat-value { font-size: 16px; font-weight: 700; }
+  .stat-value.pos { color: #3fb950; }
+  .stat-value.neg { color: #f85149; }
+
+  /* ── Positions & Orders ── */
+  .section-title { font-size: 12px; color: #8b949e; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .5px; }
+  .pos-row, .order-row { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; margin-bottom: 6px; font-size: 12px; }
+  .pos-row .sym { font-weight: 600; color: #58a6ff; }
+  .order-row { display: flex; justify-content: space-between; align-items: center; }
+  .cancel-btn { background: none; border: 1px solid #f85149; color: #f85149; border-radius: 4px; padding: 2px 7px; cursor: pointer; font-size: 11px; }
+  .cancel-btn:hover { background: #f85149; color: #fff; }
+  .empty { color: #484f58; font-size: 13px; text-align: center; padding: 20px 0; }
+
+  /* ── History ── */
+  .hist-row { font-size: 12px; padding: 6px 0; border-bottom: 1px solid #21262d; display: flex; gap: 8px; }
+  .hist-buy { color: #3fb950; }
+  .hist-sell { color: #f85149; }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1f6feb; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 14px; display: none; z-index: 999; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📈 模拟交易平台</h1>
+  <div class="sym-tabs" id="symTabs"></div>
+  <div>
+    <span class="live-price" id="livePrice">--</span>
+    <span class="hz-badge" id="hzBadge"></span>
+  </div>
+</header>
+
+<div class="layout">
+  <div id="chart-container"></div>
+
+  <div class="panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" onclick="switchTab('order')">下单</div>
+      <div class="panel-tab" onclick="switchTab('account')">账户</div>
+      <div class="panel-tab" onclick="switchTab('history')">记录</div>
+    </div>
+
+    <!-- 下单面板 -->
+    <div class="panel-body" id="tab-order">
+      <div class="form-group">
+        <label>类型</label>
+        <select id="orderType" onchange="onTypeChange()">
+          <option value="limit">限价单</option>
+          <option value="market">市价单</option>
+        </select>
+      </div>
+      <div class="form-group" id="priceGroup">
+        <label>价格 (USDT)</label>
+        <input type="number" id="price" placeholder="输入价格" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>数量</label>
+        <input type="number" id="size" placeholder="输入数量" step="0.001">
+      </div>
+      <div class="form-group">
+        <label>止盈价 (可选)</label>
+        <input type="number" id="tp" placeholder="触达此价平仓" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>止损价 (可选)</label>
+        <input type="number" id="sl" placeholder="触达此价止损" step="0.01">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-buy" onclick="submitOrder('buy')">买 / 做多</button>
+        <button class="btn btn-sell" onclick="submitOrder('sell')">卖 / 做空</button>
+      </div>
+      <button class="btn btn-reset" onclick="resetAccount()">⚠ 重置账户</button>
+    </div>
+
+    <!-- 账户面板 -->
+    <div class="panel-body" id="tab-account" style="display:none">
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="section-title">持仓</div>
+      <div id="positions"></div>
+      <div class="section-title">挂单</div>
+      <div id="orders"></div>
+    </div>
+
+    <!-- 历史面板 -->
+    <div class="panel-body" id="tab-history" style="display:none">
+      <div id="histList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── 状态 ──────────────────────────────────────────────────
+const SYMBOLS = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT'];
+let currentSym = 'BTCUSDT';
+let prices = {};
+let prevPrices = {};
+let tickCounts = {};
+let countReset = Date.now();
+let chart, lineSeries, ws;
+const candleData = {};   // symbol -> [{time, open, high, low, close}]
+
+// ── 初始化图表 ────────────────────────────────────────────
+function initChart() {
+  const container = document.getElementById('chart-container');
+  chart = LightweightCharts.createChart(container, {
+    layout: { background: { color: '#0d1117' }, textColor: '#8b949e' },
+    grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    timeScale: { timeVisible: true, secondsVisible: true, borderColor: '#30363d' },
+    rightPriceScale: { borderColor: '#30363d' },
+  });
+
+  lineSeries = chart.addCandlestickSeries({
+    upColor: '#3fb950', downColor: '#f85149',
+    borderUpColor: '#3fb950', borderDownColor: '#f85149',
+    wickUpColor: '#3fb950', wickDownColor: '#f85149',
+  });
+
+  // 自适应大小
+  new ResizeObserver(() => {
+    chart.resize(container.clientWidth, container.clientHeight);
+  }).observe(container);
+}
+
+// ── 行情 WebSocket ────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'tick') onTick(msg);
+  };
+
+  ws.onclose = () => setTimeout(connectWS, 2000);
+}
+
+function onTick(msg) {
+  const { symbol, price, high, low, ts } = msg;
+  prevPrices[symbol] = prices[symbol];
+  prices[symbol] = price;
+
+  // Hz 统计
+  tickCounts[symbol] = (tickCounts[symbol] || 0) + 1;
+  const elapsed = (Date.now() - countReset) / 1000;
+  if (elapsed > 5) { tickCounts = {}; countReset = Date.now(); }
+
+  if (symbol !== currentSym) return;
+
+  // 更新价格显示
+  const el = document.getElementById('livePrice');
+  const prev = prevPrices[symbol];
+  el.textContent = '$' + price.toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  el.className = 'live-price ' + (prev && price > prev ? 'up' : prev && price < prev ? 'down' : '');
+
+  // Hz 徽章
+  const hz = elapsed > 0 ? (tickCounts[symbol] || 0) / elapsed : 0;
+  document.getElementById('hzBadge').textContent = hz.toFixed(1) + ' Hz';
+
+  // 更新K线
+  const secTs = Math.floor(ts / 1000);
+  if (!candleData[symbol]) candleData[symbol] = [];
+  const arr = candleData[symbol];
+  if (arr.length === 0 || arr[arr.length-1].time !== secTs) {
+    arr.push({ time: secTs, open: price, high, low, close: price });
+    if (arr.length > 500) arr.shift();
+  } else {
+    const last = arr[arr.length-1];
+    last.high = Math.max(last.high, high);
+    last.low = Math.min(last.low, low);
+    last.close = price;
+  }
+  lineSeries.setData(arr);
+}
+
+// ── 交易对切换 ────────────────────────────────────────────
+function buildSymTabs() {
+  const el = document.getElementById('symTabs');
+  el.innerHTML = SYMBOLS.map(s =>
+    `<div class="sym-tab ${s===currentSym?'active':''}" onclick="switchSym('${s}')">${s.replace('USDT','')}</div>`
+  ).join('');
+}
+
+function switchSym(sym) {
+  currentSym = sym;
+  buildSymTabs();
+  lineSeries.setData(candleData[sym] || []);
+  const p = prices[sym];
+  document.getElementById('livePrice').textContent = p ? '$'+p.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}) : '--';
+}
+
+// ── 面板切换 ──────────────────────────────────────────────
+function switchTab(name) {
+  ['order','account','history'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name ? '' : 'none';
+  });
+  document.querySelectorAll('.panel-tab').forEach((el,i) => {
+    el.classList.toggle('active', ['order','account','history'][i] === name);
+  });
+  if (name === 'account') refreshAccount();
+  if (name === 'history') refreshHistory();
+}
+
+// ── 下单 ─────────────────────────────────────────────────
+function onTypeChange() {
+  const isMarket = document.getElementById('orderType').value === 'market';
+  document.getElementById('priceGroup').style.display = isMarket ? 'none' : '';
+  if (isMarket) document.getElementById('price').value = '';
+}
+
+async function submitOrder(side) {
+  const type = document.getElementById('orderType').value;
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  const size = parseFloat(document.getElementById('size').value);
+  const tp = document.getElementById('tp').value;
+  const sl = document.getElementById('sl').value;
+
+  if (!size || size <= 0) { toast('请输入数量', 'error'); return; }
+  if (type === 'limit' && (!price || price <= 0)) { toast('请输入价格', 'error'); return; }
+
+  const res = await fetch('/api/order', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      symbol: currentSym, side, type, price, size,
+      tp: tp ? parseFloat(tp) : null,
+      sl: sl ? parseFloat(sl) : null
+    })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    toast(`${side === 'buy' ? '买单' : '卖单'}已挂 ✓`);
+    document.getElementById('size').value = '';
+  } else {
+    toast(data.error || '下单失败', 'error');
+  }
+}
+
+// ── 账户刷新 ──────────────────────────────────────────────
+async function refreshAccount() {
+  const data = await fetch('/api/account').then(r=>r.json());
+
+  const pnlClass = data.pnl >= 0 ? 'pos' : 'neg';
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">可用余额</div>
+      <div class="stat-value">$${data.balance.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">浮动盈亏</div>
+      <div class="stat-value ${pnlClass}">${data.pnl>=0?'+':''}$${data.pnl.toFixed(2)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">总权益</div>
+      <div class="stat-value">$${data.total_equity.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">初始资金</div>
+      <div class="stat-value">$${(data.initial).toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+    </div>
+  `;
+
+  // 持仓
+  const pos = data.positions;
+  const posEl = document.getElementById('positions');
+  const posKeys = Object.keys(pos);
+  if (posKeys.length === 0) {
+    posEl.innerHTML = '<div class="empty">暂无持仓</div>';
+  } else {
+    posEl.innerHTML = posKeys.map(sym => {
+      const p = pos[sym];
+      const cur = prices[sym] || 0;
+      const pnl = p.side === 'long'
+        ? (cur - p.entry_price) * p.size
+        : (p.entry_price - cur) * p.size;
+      const cls = pnl >= 0 ? 'pos' : 'neg';
+      return `<div class="pos-row">
+        <span class="sym">${sym}</span>
+        <span style="color:#8b949e;margin:0 6px">${p.side.toUpperCase()}</span>
+        ${p.size} @ $${p.entry_price.toLocaleString('en',{minimumFractionDigits:2})}
+        <span class="${cls}" style="float:right">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // 挂单
+  const ords = data.orders;
+  const ordEl = document.getElementById('orders');
+  if (ords.length === 0) {
+    ordEl.innerHTML = '<div class="empty">暂无挂单</div>';
+  } else {
+    ordEl.innerHTML = ords.map(o => `
+      <div class="order-row">
+        <div>
+          <span style="color:${o.side==='buy'?'#3fb950':'#f85149'};font-weight:600">${o.side.toUpperCase()}</span>
+          <span style="color:#8b949e;margin:0 4px">${o.symbol}</span>
+          ${o.size} @ $${o.price.toLocaleString('en',{minimumFractionDigits:2})}
+          ${o.tp ? `<span style="color:#3fb950;font-size:11px"> TP:${o.tp}</span>` : ''}
+          ${o.sl ? `<span style="color:#f85149;font-size:11px"> SL:${o.sl}</span>` : ''}
+        </div>
+        <button class="cancel-btn" onclick="cancelOrder('${o.id}')">撤</button>
+      </div>
+    `).join('');
+  }
+}
+
+async function cancelOrder(id) {
+  await fetch(`/api/order/${id}`, {method:'DELETE'});
+  toast('订单已撤销');
+  refreshAccount();
+}
+
+async function resetAccount() {
+  if (!confirm('确认重置账户？所有数据将清空')) return;
+  await fetch('/api/reset', {method:'POST'});
+  toast('账户已重置');
+  refreshAccount();
+}
+
+// ── 历史 ─────────────────────────────────────────────────
+async function refreshHistory() {
+  const data = await fetch('/api/history').then(r=>r.json());
+  const el = document.getElementById('histList');
+  if (!data.history.length) { el.innerHTML = '<div class="empty">暂无记录</div>'; return; }
+  el.innerHTML = [...data.history].reverse().map(h => {
+    const t = new Date(h.time*1000).toLocaleTimeString('zh');
+    return `<div class="hist-row">
+      <span class="${h.side==='buy'?'hist-buy':'hist-sell'}">${h.side.toUpperCase()}</span>
+      <span style="color:#8b949e">${h.symbol}</span>
+      <span>${h.size}</span>
+      <span>@$${h.fill_price.toLocaleString('en',{minimumFractionDigits:2})}</span>
+      <span style="color:#484f58;margin-left:auto">${t}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type==='error' ? '#da3633' : '#1f6feb';
+  el.style.display = 'block';
+  setTimeout(() => el.style.display='none', 2500);
+}
+
+// ── 自动刷新账户（每3秒）────────────────────────────────
+setInterval(() => {
+  if (document.getElementById('tab-account').style.display !== 'none') refreshAccount();
+}, 3000);
+
+// ── 启动 ─────────────────────────────────────────────────
+initChart();
+buildSymTabs();
+connectWS();
+</script>
+</body>
+</html>
