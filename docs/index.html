@@ -6,77 +6,95 @@
 <title>模拟交易平台</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #0d1117; --surface: #161b22; --border: #30363d;
-  --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-  --green: #3fb950; --red: #f85149;
-}
-body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--sf:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;--gn:#3fb950;--rd:#f85149}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
 /* Header */
-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 7px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
-.logo { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
-.sym-tabs { display: flex; gap: 3px; flex-wrap: wrap; }
-.sym-tab { padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-size: 11px; }
-.sym-tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
-.price-wrap { margin-left: auto; text-align: right; line-height: 1.3; }
-.live-price { font-size: 18px; font-weight: 700; }
-.live-price.up { color: var(--green); } .live-price.down { color: var(--red); }
-.sub-info { font-size: 10px; color: var(--muted); }
-.ws-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); display: inline-block; }
-.ws-dot.on { background: var(--green); }
+header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.logo{font-size:13px;color:var(--ac);font-weight:700;white-space:nowrap}
+.sym-tabs{display:flex;gap:3px;flex-wrap:wrap}
+.sym-tab{padding:3px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--bg);color:var(--mu);cursor:pointer;font-size:11px}
+.sym-tab.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.price-wrap{margin-left:auto;text-align:right;line-height:1.3}
+.live-price{font-size:18px;font-weight:700}
+.live-price.up{color:var(--gn)}.live-price.down{color:var(--rd)}
+.sub-info{font-size:10px;color:var(--mu)}
+.ws-dot{width:7px;height:7px;border-radius:50%;background:var(--rd);display:inline-block}
+.ws-dot.on{background:var(--gn)}
 
-/* Timeframe bar */
-.tf-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 5px 12px; display: flex; gap: 3px; flex-wrap: wrap; flex-shrink: 0; }
-.tf-btn { padding: 3px 9px; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; }
-.tf-btn.active { background: #1f6feb22; color: var(--accent); font-weight: 600; }
-.tf-btn:hover:not(.active) { color: var(--text); }
+/* TF + Indicator bar */
+.ctrl-bar{background:var(--sf);border-bottom:1px solid var(--bd);padding:4px 10px;display:flex;gap:4px;align-items:center;flex-shrink:0;overflow-x:auto;white-space:nowrap}
+.ctrl-bar::-webkit-scrollbar{height:3px}.ctrl-bar::-webkit-scrollbar-thumb{background:var(--bd)}
+.tf-btn,.ind-btn{padding:3px 8px;border-radius:3px;border:none;background:transparent;color:var(--mu);cursor:pointer;font-size:11px;flex-shrink:0}
+.tf-btn.active{background:#1f6feb22;color:var(--ac);font-weight:600}
+.ind-btn{border:1px solid var(--bd)}
+.ind-btn.active{background:#1f6feb33;border-color:var(--ac);color:var(--ac)}
+.sep{width:1px;height:16px;background:var(--bd);margin:0 4px;flex-shrink:0}
 
-/* Layout */
-.main { display: flex; flex: 1; overflow: hidden; }
-#chart-wrap { flex: 1; min-width: 0; position: relative; }
-.loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0d111788; z-index: 10; font-size: 13px; color: var(--muted); }
+/* Main layout */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* Draw toolbar */
+#draw-tb{display:flex;flex-direction:column;gap:3px;padding:6px 4px;background:var(--sf);border-right:1px solid var(--bd);flex-shrink:0;width:36px;align-items:center}
+.dtool{width:28px;height:28px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--mu);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dtool.active{background:#1f6feb33;border-color:var(--ac);color:var(--ac)}
+.dtool:hover:not(.active){border-color:var(--mu)}
+.dtool-sep{width:24px;height:1px;background:var(--bd);margin:2px 0}
+
+/* Chart area */
+#chart-area{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#main-wrap{flex:1;position:relative;min-height:0}
+#main-chart{width:100%;height:100%}
+#draw-canvas{position:absolute;top:0;left:0;z-index:5;pointer-events:none}
+#sub-wrap{height:150px;flex-shrink:0;border-top:1px solid var(--bd);position:relative}
+#sub-chart{width:100%;height:100%}
+.sub-label{position:absolute;top:4px;left:8px;font-size:10px;color:var(--mu);z-index:2;pointer-events:none}
+.loading-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0d111788;z-index:20;font-size:12px;color:var(--mu)}
 
 /* Right panel */
-.panel { width: 290px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-@media (max-width: 680px) {
-  .main { flex-direction: column; }
-  #chart-wrap { height: 42vh; flex: none; }
-  .panel { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1; }
-  .tf-bar { padding: 4px 8px; }
+.panel{width:280px;background:var(--sf);border-left:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+@media(max-width:700px){
+  .layout{flex-direction:column}
+  #draw-tb{flex-direction:row;width:100%;border-right:none;border-bottom:1px solid var(--bd);padding:4px;justify-content:center;overflow-x:auto;height:auto}
+  #chart-area{height:42vh}
+  .panel{width:100%;border-left:none;border-top:1px solid var(--bd);flex:1}
+  #sub-wrap{height:120px}
 }
-.tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.tab-body { flex: 1; overflow-y: auto; padding: 11px; }
+.tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.tab{flex:1;padding:8px;text-align:center;font-size:12px;cursor:pointer;color:var(--mu);border-bottom:2px solid transparent}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac)}
+.tab-body{flex:1;overflow-y:auto;padding:10px}
+.fg{margin-bottom:8px}
+label{font-size:11px;color:var(--mu);display:block;margin-bottom:3px}
+input,select{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--tx);font-size:12px;outline:none}
+input:focus,select:focus{border-color:var(--ac)}
+.btn-row{display:flex;gap:6px;margin-top:10px}
+.btn{flex:1;padding:8px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-buy{background:#238636;color:#fff}.btn-sell{background:#da3633;color:#fff}
+.btn-sm{width:100%;padding:5px;background:var(--bd);color:var(--mu);border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-top:6px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.stat{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:7px}
+.stat .lbl{font-size:10px;color:var(--mu);margin-bottom:2px}
+.stat .val{font-size:13px;font-weight:700}
+.pos{color:var(--gn)}.neg{color:var(--rd)}
+.sec-t{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px}
+.pos-row,.ord-row{background:var(--bg);border:1px solid var(--bd);border-radius:5px;padding:6px 8px;margin-bottom:4px;font-size:11px}
+.ord-row{display:flex;justify-content:space-between;align-items:center}
+.xbtn{background:none;border:1px solid var(--rd);color:var(--rd);border-radius:3px;padding:1px 5px;cursor:pointer;font-size:10px}
+.empty{color:var(--mu);font-size:12px;text-align:center;padding:12px 0}
+.hist-row{font-size:11px;padding:4px 0;border-bottom:1px solid #21262d;display:flex;gap:5px;align-items:center}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:6px;font-size:12px;display:none;z-index:999;color:#fff;white-space:nowrap}
 
-/* Form */
-.fg { margin-bottom: 9px; }
-label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
-input, select { width: 100%; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-size: 12px; outline: none; }
-input:focus, select:focus { border-color: var(--accent); }
-.btn-row { display: flex; gap: 7px; margin-top: 12px; }
-.btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-buy { background: #238636; color: #fff; }
-.btn-sell { background: #da3633; color: #fff; }
-.btn-sm { width: 100%; padding: 5px; background: var(--border); color: var(--muted); border: none; border-radius: 5px; cursor: pointer; font-size: 11px; margin-top: 7px; }
-
-/* Stats */
-.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; }
-.stat { background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 8px; }
-.stat .lbl { font-size: 10px; color: var(--muted); margin-bottom: 2px; }
-.stat .val { font-size: 14px; font-weight: 700; }
-.pos { color: var(--green); } .neg { color: var(--red); }
-
-.sec-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 9px 0 4px; }
-.pos-row, .ord-row { background: var(--bg); border: 1px solid var(--border); border-radius: 5px; padding: 6px 8px; margin-bottom: 4px; font-size: 11px; }
-.ord-row { display: flex; justify-content: space-between; align-items: center; }
-.xbtn { background: none; border: 1px solid var(--red); color: var(--red); border-radius: 3px; padding: 1px 5px; cursor: pointer; font-size: 10px; }
-.empty { color: var(--muted); font-size: 12px; text-align: center; padding: 14px 0; }
-.hist-row { font-size: 11px; padding: 5px 0; border-bottom: 1px solid #21262d; display: flex; gap: 5px; align-items: center; }
-
-#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); padding: 8px 16px; border-radius: 7px; font-size: 12px; display: none; z-index: 999; color: #fff; white-space: nowrap; }
+/* MA settings popup */
+#ma-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:16px;z-index:100;display:none;width:220px}
+#ma-popup h3{font-size:13px;margin-bottom:12px;color:var(--ac)}
+#ma-popup .ma-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+#ma-popup .ma-row label{width:50px;font-size:11px;color:var(--mu)}
+#ma-popup .ma-row input{flex:1;padding:4px 6px}
+#ma-popup .ma-row input[type=color]{padding:0;width:32px;height:24px;cursor:pointer;border:none;background:none}
+.popup-btn{padding:5px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px}
+.popup-ok{background:#1f6feb;color:#fff}.popup-cl{background:var(--bd);color:var(--mu)}
 </style>
 </head>
 <body>
@@ -86,18 +104,42 @@ input:focus, select:focus { border-color: var(--accent); }
   <div class="sym-tabs" id="symTabs"></div>
   <div class="price-wrap">
     <span class="ws-dot" id="wsDot"></span>
-    <span class="live-price" id="livePrice">--</span>
-    <br>
+    <span class="live-price" id="livePrice">--</span><br>
     <span class="sub-info" id="subInfo">连接中...</span>
   </div>
 </header>
 
-<!-- 时间周期切换 -->
-<div class="tf-bar" id="tfBar"></div>
+<div class="ctrl-bar" id="ctrlBar"></div>
 
-<div class="main">
-  <div id="chart-wrap">
-    <div class="loading-overlay" id="loadingOverlay">加载K线数据...</div>
+<div class="layout">
+
+  <!-- 画图工具栏 -->
+  <div id="draw-tb">
+    <button class="dtool active" data-tool="cursor" title="光标" onclick="setTool(this)">⊹</button>
+    <div class="dtool-sep"></div>
+    <button class="dtool" data-tool="hline"    title="水平线"   onclick="setTool(this)">—</button>
+    <button class="dtool" data-tool="vline"    title="垂直线"   onclick="setTool(this)">|</button>
+    <button class="dtool" data-tool="trend"    title="趋势线"   onclick="setTool(this)">╱</button>
+    <button class="dtool" data-tool="ray"      title="射线"     onclick="setTool(this)">→</button>
+    <button class="dtool" data-tool="hray"     title="水平射线" onclick="setTool(this)">↦</button>
+    <div class="dtool-sep"></div>
+    <button class="dtool" data-tool="rect"     title="矩形"     onclick="setTool(this)">▭</button>
+    <button class="dtool" data-tool="fib"      title="斐波那契" onclick="setTool(this)">φ</button>
+    <div class="dtool-sep"></div>
+    <button class="dtool" id="undoBtn"  title="撤销" onclick="undoDrawing()">↩</button>
+    <button class="dtool" id="clearBtn" title="清空" onclick="clearDrawings()">🗑</button>
+  </div>
+
+  <div id="chart-area">
+    <div id="main-wrap">
+      <div id="main-chart"></div>
+      <canvas id="draw-canvas"></canvas>
+      <div class="loading-overlay" id="loadingOverlay">加载K线...</div>
+    </div>
+    <div id="sub-wrap" style="display:none">
+      <div class="sub-label" id="subLabel">RSI(14)</div>
+      <div id="sub-chart"></div>
+    </div>
   </div>
 
   <div class="panel">
@@ -106,509 +148,709 @@ input:focus, select:focus { border-color: var(--accent); }
       <div class="tab" onclick="switchTab('account',this)">账户</div>
       <div class="tab" onclick="switchTab('history',this)">记录</div>
     </div>
-
     <div class="tab-body" id="pane-order">
-      <div class="fg">
-        <label>类型</label>
-        <select id="oType" onchange="togglePriceField()">
+      <div class="fg"><label>类型</label>
+        <select id="oType" onchange="togglePF()">
           <option value="limit">限价单</option>
           <option value="market">市价单</option>
-        </select>
-      </div>
-      <div class="fg" id="priceField">
-        <label>价格 (USDT/USDC)</label>
-        <input id="oPrice" type="number" placeholder="挂单价格" step="0.01">
-      </div>
-      <div class="fg">
-        <label>数量</label>
-        <input id="oSize" type="number" placeholder="0.001" step="0.001">
-      </div>
-      <div class="fg">
-        <label>止盈价（可选）</label>
-        <input id="oTp" type="number" placeholder="触达自动平仓" step="0.01">
-      </div>
-      <div class="fg">
-        <label>止损价（可选）</label>
-        <input id="oSl" type="number" placeholder="触达止损" step="0.01">
-      </div>
+        </select></div>
+      <div class="fg" id="priceField"><label>价格</label><input id="oPrice" type="number" placeholder="挂单价" step="0.01"></div>
+      <div class="fg"><label>数量</label><input id="oSize" type="number" placeholder="0.001" step="0.001"></div>
+      <div class="fg"><label>止盈（可选）</label><input id="oTp" type="number" placeholder="触达自动平仓" step="0.01"></div>
+      <div class="fg"><label>止损（可选）</label><input id="oSl" type="number" placeholder="触达止损" step="0.01"></div>
       <div class="btn-row">
-        <button class="btn btn-buy" onclick="placeOrder('buy')">买 / 做多</button>
-        <button class="btn btn-sell" onclick="placeOrder('sell')">卖 / 做空</button>
+        <button class="btn btn-buy"  onclick="placeOrder('buy')">买/做多</button>
+        <button class="btn btn-sell" onclick="placeOrder('sell')">卖/做空</button>
       </div>
       <button class="btn-sm" onclick="resetAccount()">⚠ 重置账户</button>
     </div>
-
     <div class="tab-body" id="pane-account" style="display:none">
       <div class="stat-grid" id="statGrid"></div>
-      <div class="sec-title">持仓</div><div id="posDiv"></div>
-      <div class="sec-title">挂单</div><div id="ordDiv"></div>
+      <div class="sec-t">持仓</div><div id="posDiv"></div>
+      <div class="sec-t">挂单</div><div id="ordDiv"></div>
     </div>
-
     <div class="tab-body" id="pane-history" style="display:none">
       <div id="histDiv"></div>
     </div>
   </div>
 </div>
+
+<!-- MA设置弹窗 -->
+<div id="ma-popup">
+  <h3>⚙ MA 设置</h3>
+  <div class="ma-row"><label>MA1</label><input id="ma1p" type="number" value="7" min="1"><input id="ma1c" type="color" value="#f6c90e"></div>
+  <div class="ma-row"><label>MA2</label><input id="ma2p" type="number" value="25" min="1"><input id="ma2c" type="color" value="#2962ff"></div>
+  <div class="ma-row"><label>MA3</label><input id="ma3p" type="number" value="99" min="1"><input id="ma3c" type="color" value="#ff6d00"></div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="popup-btn popup-ok" onclick="applyMA()">应用</button>
+    <button class="popup-btn popup-cl" onclick="closeMAPopup()">关闭</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // CONFIG
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 const SYMBOLS  = ['BTCUSDC','BTCUSDT','ETHUSDC','ETHUSDT','SOLUSDT','BNBUSDT'];
 const TIMEFRAMES = [
-  { label:'1分',  interval:'1m'  },
-  { label:'3分',  interval:'3m'  },
-  { label:'5分',  interval:'5m'  },
-  { label:'15分', interval:'15m' },
-  { label:'30分', interval:'30m' },
-  { label:'1小时',interval:'1h'  },
-  { label:'2小时',interval:'2h'  },
-  { label:'4小时',interval:'4h'  },
-  { label:'8小时',interval:'8h'  },
-  { label:'1天',  interval:'1d'  },
-  { label:'1周',  interval:'1w'  },
+  {l:'1分',v:'1m'},{l:'3分',v:'3m'},{l:'5分',v:'5m'},{l:'15分',v:'15m'},
+  {l:'30分',v:'30m'},{l:'1时',v:'1h'},{l:'2时',v:'2h'},{l:'4时',v:'4h'},
+  {l:'8时',v:'8h'},{l:'日线',v:'1d'},{l:'周线',v:'1w'},
+];
+const INDICATORS = [
+  {id:'ma',  label:'MA'},
+  {id:'ema', label:'EMA'},
+  {id:'boll',label:'BOLL'},
+  {id:'vol', label:'成交量'},
+  {id:'rsi', label:'RSI'},
+  {id:'macd',label:'MACD'},
+  {id:'kdj', label:'KDJ'},
+  {id:'wr',  label:'WR'},
 ];
 const INITIAL_BALANCE = 100_000;
-const TAKER_FEE = 0.0005, MAKER_FEE = 0.0002, SLIPPAGE = 0.0005;
+const TAKER_FEE=0.0005, MAKER_FEE=0.0002, SLIPPAGE=0.0005;
 
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════
-let curSym = 'BTCUSDC';
-let curTf  = '1m';
-let prices = {}, prevPrices = {};
-let ws, wsReady = false;
-let chart, candleSeries;
-// live candle buffer (current incomplete candle per symbol per tf)
-const liveCandle = {}; // `${sym}_${tf}` -> {time,open,high,low,close}
+// ═══════════════════════════════════════════════════════════
+let curSym='BTCUSDC', curTf='1m';
+let prices={}, prevPrices={};
+let ws, activeIndicators=new Set(['ma','vol']);
+let mainChart, candleSeries, subChart, subSeries={};
+let indSeries={};
+let chartData=[]; // current symbol full data
+let currentTool='cursor';
+let drawings=[], drawingInProgress=null;
+let activeTab='order';
 
-// ══════════════════════════════════════════
-// CHART
-// ══════════════════════════════════════════
-function initChart() {
-  const el = document.getElementById('chart-wrap');
-  chart = LightweightCharts.createChart(el, {
-    layout: { background:{ color:'#0d1117' }, textColor:'#8b949e' },
-    grid:   { vertLines:{ color:'#21262d' }, horzLines:{ color:'#21262d' } },
-    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-    timeScale: { timeVisible:true, secondsVisible: curTf==='1m', borderColor:'#30363d' },
-    rightPriceScale: { borderColor:'#30363d' },
+// MA settings
+let maSettings=[
+  {period:7,  color:'#f6c90e'},
+  {period:25, color:'#2962ff'},
+  {period:99, color:'#ff6d00'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// CHART INIT
+// ═══════════════════════════════════════════════════════════
+function initCharts() {
+  const mWrap = document.getElementById('main-wrap');
+  mainChart = LightweightCharts.createChart(document.getElementById('main-chart'), {
+    layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
+    grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+    timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#30363d'},
+    rightPriceScale:{borderColor:'#30363d'},
   });
-  candleSeries = chart.addCandlestickSeries({
-    upColor:'#3fb950', downColor:'#f85149',
-    borderUpColor:'#3fb950', borderDownColor:'#f85149',
-    wickUpColor:'#3fb950', wickDownColor:'#f85149',
+  candleSeries = mainChart.addCandlestickSeries({
+    upColor:'#3fb950',downColor:'#f85149',
+    borderUpColor:'#3fb950',borderDownColor:'#f85149',
+    wickUpColor:'#3fb950',wickDownColor:'#f85149',
   });
-  new ResizeObserver(() => chart.resize(el.clientWidth, el.clientHeight)).observe(el);
+
+  // sub chart
+  subChart = LightweightCharts.createChart(document.getElementById('sub-chart'), {
+    layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
+    grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+    timeScale:{visible:false,borderColor:'#30363d'},
+    rightPriceScale:{borderColor:'#30363d'},
+    leftPriceScale:{visible:false},
+  });
+
+  // sync time scales
+  let syncing=false;
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{
+    if(syncing||!r)return; syncing=true;
+    subChart.timeScale().setVisibleLogicalRange(r);
+    syncing=false; redrawCanvas();
+  });
+  subChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{
+    if(syncing||!r)return; syncing=true;
+    mainChart.timeScale().setVisibleLogicalRange(r);
+    syncing=false;
+  });
+  mainChart.subscribeCrosshairMove(()=>redrawCanvas());
+
+  // resize
+  new ResizeObserver(()=>{
+    const mw=document.getElementById('main-wrap');
+    mainChart.resize(mw.clientWidth, mw.clientHeight);
+    const sw=document.getElementById('sub-wrap');
+    if(sw.style.display!=='none') subChart.resize(sw.clientWidth, sw.clientHeight);
+    resizeCanvas(); redrawCanvas();
+  }).observe(document.getElementById('chart-area'));
 }
 
-// ══════════════════════════════════════════
-// FETCH HISTORICAL KLINES — 分页加载
-// ══════════════════════════════════════════
-
-// 每个周期对应的加载起始时间
-function getStartTime(interval) {
-  const now = Date.now();
-  const DAY = 86400_000;
-  const map = {
-    '1m':  7   * DAY,   // 7天   (~10080根)
-    '3m':  21  * DAY,   // 21天
-    '5m':  30  * DAY,   // 30天
-    '15m': 90  * DAY,   // 90天
-    '30m': 180 * DAY,   // 6个月
-    '1h':  365 * DAY,   // 1年
-    '2h':  365 * DAY,   // 1年
-    '4h':  365 * DAY,   // 1年
-    '8h':  365 * DAY,   // 1年
-    '1d':  0,           // 全部历史 (从2017年)
-    '1w':  0,           // 全部历史
-  };
-  const offset = map[interval] ?? 365 * DAY;
-  return offset === 0 ? 1498867200000 : now - offset; // 2017-07-01 作为最早起点
+// ═══════════════════════════════════════════════════════════
+// INDICATORS CALC
+// ═══════════════════════════════════════════════════════════
+function calcMA(data,period){
+  const r=[];
+  for(let i=period-1;i<data.length;i++){
+    let s=0; for(let j=0;j<period;j++) s+=data[i-j].close;
+    r.push({time:data[i].time,value:s/period});
+  }
+  return r;
+}
+function calcEMA(data,period){
+  if(data.length<period) return [];
+  const k=2/(period+1); const r=[];
+  let ema=0; for(let i=0;i<period;i++) ema+=data[i].close; ema/=period;
+  r.push({time:data[period-1].time,value:ema,close:ema});
+  for(let i=period;i<data.length;i++){
+    ema=data[i].close*k+ema*(1-k);
+    r.push({time:data[i].time,value:ema,close:ema});
+  }
+  return r;
+}
+function calcBOLL(data,period=20,mult=2){
+  const u=[],m=[],l=[];
+  for(let i=period-1;i<data.length;i++){
+    const sl=data.slice(i-period+1,i+1).map(x=>x.close);
+    const mean=sl.reduce((a,b)=>a+b,0)/period;
+    const std=Math.sqrt(sl.reduce((a,b)=>a+(b-mean)**2,0)/period);
+    u.push({time:data[i].time,value:mean+mult*std});
+    m.push({time:data[i].time,value:mean});
+    l.push({time:data[i].time,value:mean-mult*std});
+  }
+  return {u,m,l};
+}
+function calcRSI(data,period=14){
+  if(data.length<period+1) return [];
+  const r=[]; let ag=0,al=0;
+  for(let i=1;i<=period;i++){const d=data[i].close-data[i-1].close; d>0?ag+=d:al-=d;}
+  ag/=period; al/=period;
+  r.push({time:data[period].time,value:al===0?100:100-100/(1+ag/al)});
+  for(let i=period+1;i<data.length;i++){
+    const d=data[i].close-data[i-1].close;
+    ag=(ag*(period-1)+Math.max(0,d))/period;
+    al=(al*(period-1)+Math.max(0,-d))/period;
+    r.push({time:data[i].time,value:al===0?100:100-100/(1+ag/al)});
+  }
+  return r;
+}
+function calcMACD(data,fast=12,slow=26,sig=9){
+  const ef=calcEMA(data,fast), es=calcEMA(data,slow);
+  const off=slow-fast;
+  const macd=ef.slice(off).map((d,i)=>({time:d.time,value:d.value-es[i].value,close:d.value-es[i].value}));
+  const signal=calcEMA(macd,sig);
+  const sm={}; signal.forEach(d=>sm[d.time]=d.value);
+  const hist=macd.slice(sig-1).map((d,i)=>({time:d.time,value:d.value-(sm[d.time]||0)}));
+  return {macd,signal,hist};
+}
+function calcKDJ(data,period=9){
+  const K=[],D=[],J=[]; let k=50,d=50;
+  for(let i=period-1;i<data.length;i++){
+    const sl=data.slice(i-period+1,i+1);
+    const hi=Math.max(...sl.map(x=>x.high)), lo=Math.min(...sl.map(x=>x.low));
+    const rsv=hi===lo?50:(data[i].close-lo)/(hi-lo)*100;
+    k=k*2/3+rsv/3; d=d*2/3+k/3; const j=3*k-2*d;
+    K.push({time:data[i].time,value:k});
+    D.push({time:data[i].time,value:d});
+    J.push({time:data[i].time,value:j});
+  }
+  return {K,D,J};
+}
+function calcWR(data,period=14){
+  const r=[];
+  for(let i=period-1;i<data.length;i++){
+    const sl=data.slice(i-period+1,i+1);
+    const hi=Math.max(...sl.map(x=>x.high)), lo=Math.min(...sl.map(x=>x.low));
+    const wr=hi===lo?-50:-(hi-data[i].close)/(hi-lo)*100;
+    r.push({time:data[i].time,value:wr});
+  }
+  return r;
 }
 
-async function loadKlines(sym, interval) {
-  const overlay = document.getElementById('loadingOverlay');
-  overlay.textContent = '加载K线数据...';
-  overlay.style.display = 'flex';
+// ═══════════════════════════════════════════════════════════
+// INDICATOR RENDERING
+// ═══════════════════════════════════════════════════════════
+function clearIndSeries(){
+  Object.values(indSeries).flat().forEach(s=>{ try{mainChart.removeSeries(s)}catch{} });
+  Object.values(subSeries).flat().forEach(s=>{ try{subChart.removeSeries(s)}catch{} });
+  indSeries={}; subSeries={};
+}
 
-  const allData = [];
-  let startTime = getStartTime(interval);
-  const now = Date.now();
-  let batchCount = 0;
+function renderIndicators(data){
+  clearIndSeries();
+  if(!data.length) return;
 
-  try {
-    while (startTime < now) {
-      const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&startTime=${startTime}&limit=1000`;
-      const res = await fetch(url);
-      if (!res.ok) break;
-      const raw = await res.json();
-      if (!raw.length) break;
+  if(activeIndicators.has('ma')){
+    indSeries.ma = maSettings.map(cfg=>{
+      const s=mainChart.addLineSeries({color:cfg.color,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      s.setData(calcMA(data,cfg.period));
+      return s;
+    });
+  }
 
-      for (const k of raw) {
-        allData.push({
-          time:  Math.floor(k[0] / 1000),
-          open:  parseFloat(k[1]),
-          high:  parseFloat(k[2]),
-          low:   parseFloat(k[3]),
-          close: parseFloat(k[4]),
-        });
-      }
+  if(activeIndicators.has('ema')){
+    indSeries.ema=[];
+    [[12,'#9c27b0'],[26,'#ff9800']].forEach(([p,c])=>{
+      const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      s.setData(calcEMA(data,p)); indSeries.ema.push(s);
+    });
+  }
 
-      // 下一批从最后一根K线的收盘时间+1ms开始
-      const lastCloseTime = raw[raw.length - 1][6];
-      startTime = lastCloseTime + 1;
-      batchCount++;
+  if(activeIndicators.has('boll')){
+    const b=calcBOLL(data);
+    indSeries.boll=[];
+    [{d:b.u,c:'#ff5722'},{d:b.m,c:'#9c27b0'},{d:b.l,c:'#2196f3'}].forEach(({d,c})=>{
+      const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      s.setData(d); indSeries.boll.push(s);
+    });
+  }
 
-      overlay.textContent = `加载中... ${allData.length} 根K线`;
+  if(activeIndicators.has('vol')){
+    const volData=data.map(d=>({time:d.time,value:d.volume||1,color:d.close>=d.open?'#3fb95066':'#f8514966'}));
+    const vs=mainChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol',lastValueVisible:false});
+    vs.priceScale().applyOptions({scaleMargins:{top:0.85,bottom:0}});
+    vs.setData(volData);
+    indSeries.vol=[vs];
+  }
 
-      // 已经到达当前时间附近就停止
-      if (raw.length < 1000) break;
-
-      // 防止请求过快，限速
-      if (batchCount % 5 === 0) await sleep(300);
+  // SUB CHART indicators
+  const showSub = activeIndicators.has('rsi')||activeIndicators.has('macd')||activeIndicators.has('kdj')||activeIndicators.has('wr');
+  const subWrap=document.getElementById('sub-wrap');
+  if(showSub){
+    subWrap.style.display='';
+    // pick first active sub indicator
+    if(activeIndicators.has('rsi')){
+      document.getElementById('subLabel').textContent='RSI(14)';
+      const rs=calcRSI(data);
+      const s=subChart.addLineSeries({color:'#e040fb',lineWidth:1,priceLineVisible:false,lastValueVisible:true});
+      s.setData(rs); subSeries.rsi=[s];
+      // overbought/oversold lines
+      [70,30].forEach(v=>{
+        s.createPriceLine({price:v,color:'#8b949e',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true,title:v===70?'OB':'OS'});
+      });
+    } else if(activeIndicators.has('macd')){
+      document.getElementById('subLabel').textContent='MACD(12,26,9)';
+      const mc=calcMACD(data);
+      const ms=subChart.addLineSeries({color:'#2196f3',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      ms.setData(mc.macd);
+      const ss=subChart.addLineSeries({color:'#ff9800',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      ss.setData(mc.signal);
+      const hs=subChart.addHistogramSeries({color:'#3fb950',priceLineVisible:false,lastValueVisible:false});
+      hs.setData(mc.hist.map(d=>({...d,color:d.value>=0?'#3fb95088':'#f8514988'})));
+      subSeries.macd=[ms,ss,hs];
+    } else if(activeIndicators.has('kdj')){
+      document.getElementById('subLabel').textContent='KDJ(9)';
+      const kd=calcKDJ(data);
+      [[kd.K,'#f6c90e'],[kd.D,'#2196f3'],[kd.J,'#ff5722']].forEach(([d,c])=>{
+        const s=subChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+        s.setData(d); (subSeries.kdj=subSeries.kdj||[]).push(s);
+      });
+    } else if(activeIndicators.has('wr')){
+      document.getElementById('subLabel').textContent='WR(14)';
+      const wr=calcWR(data);
+      const s=subChart.addLineSeries({color:'#00bcd4',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+      s.setData(wr); subSeries.wr=[s];
+      [-20,-80].forEach(v=>s.createPriceLine({price:v,color:'#8b949e',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true}));
     }
-
-    // 去重 + 排序（防止边界重叠）
-    const seen = new Set();
-    const deduped = allData.filter(c => {
-      if (seen.has(c.time)) return false;
-      seen.add(c.time); return true;
-    }).sort((a, b) => a.time - b.time);
-
-    candleSeries.setData(deduped);
-    chart.timeScale().fitContent();
-
-    if (deduped.length) {
-      const last = deduped[deduped.length - 1];
-      prices[sym] = last.close;
-      liveCandle[`${sym}_${interval}`] = { ...last };
-      updatePriceDisplay(sym, last.close);
-    }
-
-    overlay.textContent = `✓ ${deduped.length} 根K线已加载`;
-    setTimeout(() => overlay.style.display = 'none', 800);
-
-  } catch(e) {
-    console.error('klines fetch error', e);
-    overlay.textContent = '加载失败，请刷新重试';
-    setTimeout(() => overlay.style.display = 'none', 2000);
+    setTimeout(()=>{ const sw=document.getElementById('sub-wrap'); subChart.resize(sw.clientWidth,sw.clientHeight); },50);
+  } else {
+    subWrap.style.display='none';
   }
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ══════════════════════════════════════════
-// WEBSOCKET — Binance (ticker + kline stream)
-// ══════════════════════════════════════════
-function buildStreams() {
-  const sl = curSym.toLowerCase();
-  // subscribe all symbols ticker for price + current sym kline
-  const streams = SYMBOLS.map(s => `${s.toLowerCase()}@ticker`);
-  streams.push(`${sl}@kline_${curTf}`);
-  return streams.join('/');
+function toggleIndicator(id){
+  // rsi/macd/kdj/wr are mutually exclusive in sub-chart
+  const subGroup=['rsi','macd','kdj','wr'];
+  if(subGroup.includes(id)){
+    if(activeIndicators.has(id)){
+      activeIndicators.delete(id);
+    } else {
+      subGroup.forEach(x=>activeIndicators.delete(x));
+      activeIndicators.add(id);
+    }
+  } else {
+    activeIndicators.has(id)?activeIndicators.delete(id):activeIndicators.add(id);
+  }
+  buildCtrlBar();
+  if(id==='ma') { document.getElementById('ma-popup').style.display='block'; return; }
+  renderIndicators(chartData);
 }
 
-function connectWS() {
-  if (ws) { ws.onclose = null; ws.close(); }
-  const url = `wss://stream.binance.com:9443/stream?streams=${buildStreams()}`;
-  ws = new WebSocket(url);
-  ws.onopen = () => {
-    wsReady = true;
-    document.getElementById('wsDot').className = 'ws-dot on';
-  };
-  ws.onclose = () => {
-    wsReady = false;
-    document.getElementById('wsDot').className = 'ws-dot';
-    setTimeout(connectWS, 2000);
-  };
-  ws.onerror = () => ws.close();
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    const d = msg.data || {};
-    const stream = msg.stream || '';
+// MA popup
+function applyMA(){
+  maSettings=[
+    {period:+document.getElementById('ma1p').value,color:document.getElementById('ma1c').value},
+    {period:+document.getElementById('ma2p').value,color:document.getElementById('ma2c').value},
+    {period:+document.getElementById('ma3p').value,color:document.getElementById('ma3c').value},
+  ];
+  closeMAPopup(); renderIndicators(chartData);
+}
+function closeMAPopup(){ document.getElementById('ma-popup').style.display='none'; }
 
-    // 24h ticker — most accurate price (matches Binance app)
-    if (stream.includes('@ticker')) {
-      const sym = d.s;
-      const price = parseFloat(d.c); // last price
-      prevPrices[sym] = prices[sym];
-      prices[sym] = price;
-      checkOrders(sym, price, price, price);
-      if (sym === curSym) updatePriceDisplay(sym, price);
+// ═══════════════════════════════════════════════════════════
+// KLINES LOAD
+// ═══════════════════════════════════════════════════════════
+function getStartTime(iv){
+  const DAY=86400000, now=Date.now();
+  const map={'1m':7,'3m':21,'5m':30,'15m':90,'30m':180,'1h':365,'2h':365,'4h':365,'8h':365};
+  const days=map[iv]; if(!days) return 1498867200000;
+  return now-days*DAY;
+}
+async function loadKlines(sym,iv){
+  const ov=document.getElementById('loadingOverlay');
+  ov.textContent='加载K线...'; ov.style.display='flex';
+  const all=[];
+  let start=getStartTime(iv), batchCount=0;
+  try{
+    while(start<Date.now()){
+      const url=`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&startTime=${start}&limit=1000`;
+      const res=await fetch(url); if(!res.ok) break;
+      const raw=await res.json(); if(!raw.length) break;
+      for(const k of raw) all.push({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]});
+      const last=raw[raw.length-1]; start=last[6]+1; batchCount++;
+      ov.textContent=`加载中... ${all.length} 根`;
+      if(raw.length<1000) break;
+      if(batchCount%5===0) await sleep(300);
     }
+    const seen=new Set();
+    chartData=all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
+    candleSeries.setData(chartData);
+    mainChart.timeScale().fitContent();
+    if(chartData.length){ prices[sym]=chartData[chartData.length-1].close; updatePriceDisplay(sym,prices[sym]); }
+    renderIndicators(chartData);
+    ov.textContent=`✓ ${chartData.length}根`;
+    setTimeout(()=>ov.style.display='none',700);
+  } catch(e){ console.error(e); ov.textContent='加载失败'; setTimeout(()=>ov.style.display='none',2000); }
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-    // kline — update chart candle
-    if (stream.includes('@kline')) {
-      const k = d.k;
-      const sym = k.s;
-      const key = `${sym}_${k.i}`;
-      const candle = {
-        time:  Math.floor(k.t / 1000),
-        open:  parseFloat(k.o),
-        high:  parseFloat(k.h),
-        low:   parseFloat(k.l),
-        close: parseFloat(k.c),
-      };
-      liveCandle[key] = candle;
-      if (sym === curSym && k.i === curTf) {
+// ═══════════════════════════════════════════════════════════
+// WEBSOCKET
+// ═══════════════════════════════════════════════════════════
+function connectWS(){
+  if(ws){ws.onclose=null;ws.close();}
+  const sl=curSym.toLowerCase();
+  const streams=[...SYMBOLS.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${curTf}`].join('/');
+  ws=new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+  ws.onopen=()=>document.getElementById('wsDot').className='ws-dot on';
+  ws.onclose=()=>{document.getElementById('wsDot').className='ws-dot';setTimeout(connectWS,2000);};
+  ws.onerror=()=>ws.close();
+  ws.onmessage=(e)=>{
+    const msg=JSON.parse(e.data), d=msg.data||{}, stream=msg.stream||'';
+    if(stream.includes('@ticker')){
+      const sym=d.s, price=+d.c;
+      prevPrices[sym]=prices[sym]; prices[sym]=price;
+      checkOrders(sym,price,price,price);
+      if(sym===curSym) updatePriceDisplay(sym,price);
+    }
+    if(stream.includes('@kline')){
+      const k=d.k;
+      const candle={time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};
+      if(k.s===curSym&&k.i===curTf){
         candleSeries.update(candle);
-        // also use for order matching with wick precision
-        checkOrders(sym, candle.close, candle.high, candle.low);
+        // update last candle in chartData for live indicator update
+        if(chartData.length&&chartData[chartData.length-1].time===candle.time){
+          chartData[chartData.length-1]=candle;
+        } else if(candle.time>(chartData[chartData.length-1]||{}).time){
+          chartData.push(candle);
+        }
+        checkOrders(k.s,+k.c,+k.h,+k.l);
       }
     }
   };
 }
-
-function updatePriceDisplay(sym, price) {
-  const prev = prevPrices[sym];
-  const el = document.getElementById('livePrice');
-  el.textContent = '$' + price.toLocaleString('en', { minimumFractionDigits:2, maximumFractionDigits:2 });
-  el.className = 'live-price' + (prev && price > prev ? ' up' : prev && price < prev ? ' down' : '');
-  document.getElementById('subInfo').textContent = `${sym} · 实时`;
+function updatePriceDisplay(sym,price){
+  const prev=prevPrices[sym], el=document.getElementById('livePrice');
+  el.textContent='$'+price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
+  el.className='live-price'+(prev&&price>prev?' up':prev&&price<prev?' down':'');
+  document.getElementById('subInfo').textContent=sym+' · 实时';
 }
 
-// ══════════════════════════════════════════
-// SYMBOL & TIMEFRAME SWITCH
-// ══════════════════════════════════════════
-function buildSymTabs() {
-  document.getElementById('symTabs').innerHTML = SYMBOLS.map(s => {
-    const label = s.replace('USDC','/C').replace('USDT','/T');
-    return `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${label}</div>`;
-  }).join('');
+// ═══════════════════════════════════════════════════════════
+// DRAWING TOOLS (Canvas overlay)
+// ═══════════════════════════════════════════════════════════
+let canvas, ctx;
+function initCanvas(){
+  canvas=document.getElementById('draw-canvas');
+  ctx=canvas.getContext('2d');
+  resizeCanvas();
+
+  // mouse events
+  canvas.addEventListener('mousedown', e=>onDown(e.offsetX,e.offsetY));
+  canvas.addEventListener('mousemove', e=>onMove(e.offsetX,e.offsetY));
+  canvas.addEventListener('mouseup',   e=>onUp(e.offsetX,e.offsetY));
+  // touch events
+  canvas.addEventListener('touchstart',e=>{const t=e.touches[0],r=canvas.getBoundingClientRect();onDown(t.clientX-r.left,t.clientY-r.top);e.preventDefault();},{passive:false});
+  canvas.addEventListener('touchmove', e=>{const t=e.touches[0],r=canvas.getBoundingClientRect();onMove(t.clientX-r.left,t.clientY-r.top);e.preventDefault();},{passive:false});
+  canvas.addEventListener('touchend',  e=>{const t=e.changedTouches[0],r=canvas.getBoundingClientRect();onUp(t.clientX-r.left,t.clientY-r.top);},{passive:false});
+}
+function resizeCanvas(){
+  const w=document.getElementById('main-wrap');
+  canvas.width=w.clientWidth; canvas.height=w.clientHeight;
+}
+function setTool(btn){
+  currentTool=btn.dataset.tool; drawingInProgress=null;
+  document.querySelectorAll('.dtool[data-tool]').forEach(b=>b.classList.toggle('active',b===btn));
+  canvas.style.pointerEvents=currentTool==='cursor'?'none':'auto';
+  canvas.style.cursor=currentTool==='cursor'?'default':'crosshair';
+}
+function getChartCoord(px,py){
+  const price=candleSeries.coordinateToPrice(py);
+  const time=mainChart.timeScale().coordinateToTime(px);
+  return {px,py,price,time};
+}
+function toScreen(time,price){
+  const x=mainChart.timeScale().timeToCoordinate(time);
+  const y=candleSeries.priceToCoordinate(price);
+  return {x,y};
+}
+function onDown(px,py){
+  const coord=getChartCoord(px,py);
+  if(currentTool==='hline'){
+    drawings.push({type:'hline',price:coord.price}); redrawCanvas(); return;
+  }
+  if(currentTool==='vline'){
+    drawings.push({type:'vline',time:coord.time,px}); redrawCanvas(); return;
+  }
+  if(['trend','ray','fib','rect','hray'].includes(currentTool)){
+    if(!drawingInProgress){
+      drawingInProgress={type:currentTool,start:coord,end:coord};
+    }
+  }
+}
+function onMove(px,py){
+  if(!drawingInProgress) return;
+  drawingInProgress.end=getChartCoord(px,py);
+  redrawCanvas();
+}
+function onUp(px,py){
+  if(!drawingInProgress) return;
+  drawingInProgress.end=getChartCoord(px,py);
+  drawings.push({...drawingInProgress}); drawingInProgress=null; redrawCanvas();
+}
+function undoDrawing(){ drawings.pop(); redrawCanvas(); }
+function clearDrawings(){ drawings=[]; drawingInProgress=null; redrawCanvas(); }
+
+const FIB_LEVELS=[0,0.236,0.382,0.5,0.618,0.786,1];
+const FIB_COLORS=['#f6c90e','#2196f3','#4caf50','#ff9800','#e91e63','#9c27b0','#f6c90e'];
+
+function redrawCanvas(){
+  if(!ctx) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.lineWidth=1.5;
+
+  const all=[...drawings, drawingInProgress].filter(Boolean);
+  for(const d of all){
+    ctx.strokeStyle='#58a6ff'; ctx.fillStyle='#58a6ff88';
+    ctx.setLineDash([]);
+    if(d.type==='hline'){
+      const y=candleSeries.priceToCoordinate(d.price);
+      if(y==null) continue;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y);
+      ctx.stroke();
+      ctx.fillStyle='#58a6ff'; ctx.font='10px Segoe UI';
+      ctx.fillText(d.price?.toFixed(2),4,y-3);
+    }
+    else if(d.type==='vline'){
+      const x=mainChart.timeScale().timeToCoordinate(d.time);
+      if(x==null) continue;
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+    }
+    else if(d.type==='hray'){
+      const y=candleSeries.priceToCoordinate(d.start.price);
+      const x=mainChart.timeScale().timeToCoordinate(d.start.time);
+      if(y==null||x==null) continue;
+      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+    }
+    else if(d.type==='trend'||d.type==='ray'){
+      const s=toScreen(d.start.time,d.start.price);
+      const e=toScreen(d.end.time,d.end.price);
+      if(s.x==null||e.x==null) continue;
+      ctx.beginPath(); ctx.moveTo(s.x,s.y);
+      if(d.type==='ray'){
+        // extend to edge
+        const dx=e.x-s.x, dy=e.y-s.y;
+        const t=(canvas.width-s.x)/dx;
+        ctx.lineTo(s.x+dx*t, s.y+dy*t);
+      } else { ctx.lineTo(e.x,e.y); }
+      ctx.stroke();
+      // dots
+      ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(e.x,e.y,3,0,Math.PI*2); ctx.fill();
+    }
+    else if(d.type==='rect'){
+      const s=toScreen(d.start.time,d.start.price);
+      const e=toScreen(d.end.time,d.end.price);
+      if(s.x==null||e.x==null) continue;
+      ctx.fillStyle='#58a6ff15';
+      ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);
+      ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y);
+    }
+    else if(d.type==='fib'){
+      const minP=Math.min(d.start.price,d.end.price);
+      const maxP=Math.max(d.start.price,d.end.price);
+      const sx=Math.min(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time));
+      const ex=Math.max(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time));
+      if(sx==null||ex==null) continue;
+      FIB_LEVELS.forEach((lvl,i)=>{
+        const price=maxP-(maxP-minP)*lvl;
+        const y=candleSeries.priceToCoordinate(price);
+        if(y==null) return;
+        ctx.strokeStyle=FIB_COLORS[i]; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(sx,y); ctx.lineTo(ex,y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle=FIB_COLORS[i]; ctx.font='10px Segoe UI';
+        ctx.fillText(`${(lvl*100).toFixed(1)}%  ${price.toFixed(2)}`,ex+4,y+4);
+      });
+    }
+  }
 }
 
-function buildTfBar() {
-  document.getElementById('tfBar').innerHTML = TIMEFRAMES.map(tf =>
-    `<button class="tf-btn${tf.interval===curTf?' active':''}" onclick="switchTf('${tf.interval}')">${tf.label}</button>`
+// ═══════════════════════════════════════════════════════════
+// SYMBOL / TF SWITCH
+// ═══════════════════════════════════════════════════════════
+function buildCtrlBar(){
+  const bar=document.getElementById('ctrlBar');
+  bar.innerHTML=
+    TIMEFRAMES.map(tf=>`<button class="tf-btn${tf.v===curTf?' active':''}" onclick="switchTf('${tf.v}')">${tf.l}</button>`).join('')+
+    '<div class="sep"></div>'+
+    INDICATORS.map(ind=>{
+      const act=activeIndicators.has(ind.id);
+      return `<button class="ind-btn${act?' active':''}" onclick="toggleIndicator('${ind.id}')">${ind.label}</button>`;
+    }).join('');
+}
+function buildSymTabs(){
+  document.getElementById('symTabs').innerHTML=SYMBOLS.map(s=>
+    `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${s.replace('USDC','/C').replace('USDT','/T')}</div>`
   ).join('');
 }
-
-async function switchSym(sym) {
-  curSym = sym;
-  buildSymTabs();
-  await loadKlines(sym, curTf);
-  connectWS(); // reconnect with new symbol stream
+async function switchSym(sym){
+  curSym=sym; buildSymTabs();
+  await loadKlines(sym,curTf); connectWS();
+}
+async function switchTf(iv){
+  curTf=iv; buildCtrlBar();
+  mainChart.applyOptions({timeScale:{secondsVisible:iv==='1m'}});
+  await loadKlines(curSym,iv); connectWS();
 }
 
-async function switchTf(interval) {
-  curTf = interval;
-  buildTfBar();
-  // update secondsVisible
-  chart.applyOptions({ timeScale: { secondsVisible: interval === '1m' } });
-  await loadKlines(curSym, interval);
-  connectWS(); // reconnect with new kline stream
-}
-
-// ══════════════════════════════════════════
-// MATCHING ENGINE (穿针 + 滑点)
-// ══════════════════════════════════════════
-function applySlippage(price, side, size) {
-  const impact = SLIPPAGE + (size / 10) * 0.0001;
-  return side === 'buy' ? price * (1 + impact) : price * (1 - impact);
-}
-
-function checkOrders(sym, price, high, low) {
-  const acc = getAccount();
-  let changed = false;
-  const toFill = [];
-
-  for (const o of acc.orders) {
-    if (o.symbol !== sym) continue;
-    if (o.type === 'limit') {
-      if (o.side === 'buy'  && low  <= o.price) toFill.push({ o, fp: applySlippage(o.price,'buy',o.size),  fee: MAKER_FEE });
-      if (o.side === 'sell' && high >= o.price) toFill.push({ o, fp: applySlippage(o.price,'sell',o.size), fee: MAKER_FEE });
-    } else if (o.type === 'market') {
-      toFill.push({ o, fp: applySlippage(price, o.side, o.size), fee: TAKER_FEE });
-    }
-    // TP
-    if (o.tp) {
-      const tp = o.tp;
-      if ((o.side==='buy'&&high>=tp)||(o.side==='sell'&&low<=tp)) {
-        const co = {...o, side:o.side==='buy'?'sell':'buy', price:tp, type:'limit', tp:null, sl:null};
-        toFill.push({ o:co, fp:tp, fee:MAKER_FEE, closeOf:o.id });
-      }
-    }
-    // SL
-    if (o.sl) {
-      const sl = o.sl;
-      if ((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)) {
-        const co = {...o, side:o.side==='buy'?'sell':'buy', price:sl, type:'market', tp:null, sl:null};
-        toFill.push({ o:co, fp:applySlippage(sl,co.side,o.size), fee:TAKER_FEE, closeOf:o.id });
-      }
-    }
+// ═══════════════════════════════════════════════════════════
+// MATCHING ENGINE
+// ═══════════════════════════════════════════════════════════
+function applySlippage(price,side,size){const i=SLIPPAGE+(size/10)*0.0001;return side==='buy'?price*(1+i):price*(1-i);}
+function checkOrders(sym,price,high,low){
+  const acc=getAccount(); let changed=false; const toFill=[];
+  for(const o of acc.orders){
+    if(o.symbol!==sym) continue;
+    if(o.type==='limit'){
+      if(o.side==='buy'&&low<=o.price)  toFill.push({o,fp:applySlippage(o.price,'buy',o.size),fee:MAKER_FEE});
+      if(o.side==='sell'&&high>=o.price) toFill.push({o,fp:applySlippage(o.price,'sell',o.size),fee:MAKER_FEE});
+    } else toFill.push({o,fp:applySlippage(price,o.side,o.size),fee:TAKER_FEE});
+    if(o.tp){const tp=o.tp;if((o.side==='buy'&&high>=tp)||(o.side==='sell'&&low<=tp)){const co={...o,side:o.side==='buy'?'sell':'buy',price:tp,type:'limit',tp:null,sl:null};toFill.push({o:co,fp:tp,fee:MAKER_FEE,closeOf:o.id});}}
+    if(o.sl){const sl=o.sl;if((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)){const co={...o,side:o.side==='buy'?'sell':'buy',price:sl,type:'market',tp:null,sl:null};toFill.push({o:co,fp:applySlippage(sl,co.side,o.size),fee:TAKER_FEE,closeOf:o.id});}}
   }
-
-  for (const { o, fp, fee, closeOf } of toFill) {
-    fillOrder(acc, o, fp, fee);
-    if (closeOf) acc.orders = acc.orders.filter(x => x.id !== closeOf);
-    changed = true;
-    toast(`✅ ${o.side==='buy'?'买入':'卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);
-  }
-  if (changed) { saveAccount(acc); if (activeTab==='account') renderAccount(); }
+  for(const{o,fp,fee,closeOf}of toFill){fillOrder(acc,o,fp,fee);if(closeOf)acc.orders=acc.orders.filter(x=>x.id!==closeOf);changed=true;toast(`${o.side==='buy'?'✅买入':'🔴卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);}
+  if(changed){saveAccount(acc);if(activeTab==='account')renderAccount();}
 }
-
-function fillOrder(acc, o, fp, feeRate) {
-  const cost = fp * o.size, fee = cost * feeRate, sym = o.symbol;
-  if (o.side === 'buy') {
-    acc.balance -= cost + fee;
-    if (!acc.positions[sym]) acc.positions[sym] = { size:0, entryPrice:0, side:'long' };
-    const p = acc.positions[sym];
-    const tot = p.size + o.size;
-    p.entryPrice = (p.size * p.entryPrice + o.size * fp) / tot;
-    p.size = tot; p.side = 'long';
+function fillOrder(acc,o,fp,feeRate){
+  const cost=fp*o.size,fee=cost*feeRate,sym=o.symbol;
+  if(o.side==='buy'){
+    acc.balance-=cost+fee;
+    if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'long'};
+    const p=acc.positions[sym];const tot=p.size+o.size;
+    p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='long';
   } else {
-    if (acc.positions[sym]?.size > 0) {
-      const p = acc.positions[sym];
-      acc.balance += fp * o.size - fee + (fp - p.entryPrice) * o.size;
-      p.size -= o.size;
-      if (p.size < 0.000001) delete acc.positions[sym];
+    if(acc.positions[sym]?.size>0){
+      const p=acc.positions[sym];
+      acc.balance+=fp*o.size-fee+(fp-p.entryPrice)*o.size;
+      p.size-=o.size;if(p.size<0.000001)delete acc.positions[sym];
     } else {
-      acc.balance -= fee;
-      if (!acc.positions[sym]) acc.positions[sym] = { size:0, entryPrice:0, side:'short' };
-      const p = acc.positions[sym];
-      const tot = p.size + o.size;
-      p.entryPrice = (p.size * p.entryPrice + o.size * fp) / tot;
-      p.size = tot; p.side = 'short';
+      acc.balance-=fee;
+      if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'short'};
+      const p=acc.positions[sym];const tot=p.size+o.size;
+      p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='short';
     }
   }
-  acc.history.push({ symbol:sym, side:o.side, size:o.size, fillPrice:fp, fee, time:Date.now() });
-  acc.orders = acc.orders.filter(x => x.id !== o.id);
+  acc.history.push({symbol:sym,side:o.side,size:o.size,fillPrice:fp,fee,time:Date.now()});
+  acc.orders=acc.orders.filter(x=>x.id!==o.id);
 }
 
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // ACCOUNT
-// ══════════════════════════════════════════
-function getAccount() {
-  try { return JSON.parse(localStorage.getItem('account')) || mkAcc(); } catch { return mkAcc(); }
-}
-function mkAcc() { return { balance:INITIAL_BALANCE, positions:{}, orders:[], history:[] }; }
-function saveAccount(a) { localStorage.setItem('account', JSON.stringify(a)); }
+// ═══════════════════════════════════════════════════════════
+function getAccount(){try{return JSON.parse(localStorage.getItem('account'))||mkAcc();}catch{return mkAcc();}}
+function mkAcc(){return{balance:INITIAL_BALANCE,positions:{},orders:[],history:[]};}
+function saveAccount(a){localStorage.setItem('account',JSON.stringify(a));}
 
-// ══════════════════════════════════════════
-// UI — Order
-// ══════════════════════════════════════════
-function togglePriceField() {
-  document.getElementById('priceField').style.display =
-    document.getElementById('oType').value === 'market' ? 'none' : '';
-}
-
-function placeOrder(side) {
-  const type  = document.getElementById('oType').value;
-  const price = parseFloat(document.getElementById('oPrice').value) || 0;
-  const size  = parseFloat(document.getElementById('oSize').value);
-  const tp    = parseFloat(document.getElementById('oTp').value) || null;
-  const sl    = parseFloat(document.getElementById('oSl').value) || null;
-  if (!size||size<=0) { toast('请输入数量',1); return; }
-  if (type==='limit'&&price<=0) { toast('请输入价格',1); return; }
-  const acc = getAccount();
-  const o = { id: Date.now()+Math.random().toString(36).slice(2), symbol:curSym, side, type, price, size, tp, sl, time:Date.now() };
+// ═══════════════════════════════════════════════════════════
+// ORDER UI
+// ═══════════════════════════════════════════════════════════
+function togglePF(){document.getElementById('priceField').style.display=document.getElementById('oType').value==='market'?'none':'';}
+function placeOrder(side){
+  const type=document.getElementById('oType').value;
+  const price=+document.getElementById('oPrice').value||0;
+  const size=+document.getElementById('oSize').value;
+  const tp=+document.getElementById('oTp').value||null;
+  const sl=+document.getElementById('oSl').value||null;
+  if(!size||size<=0){toast('请输入数量',1);return;}
+  if(type==='limit'&&price<=0){toast('请输入价格',1);return;}
+  const acc=getAccount();
+  const o={id:Date.now()+Math.random().toString(36).slice(2),symbol:curSym,side,type,price,size,tp,sl,time:Date.now()};
   acc.orders.push(o);
-  if (type==='market') {
-    const cur = prices[curSym];
-    if (cur) fillOrder(acc, o, applySlippage(cur,side,size), TAKER_FEE);
-  }
-  saveAccount(acc);
-  toast(`${side==='buy'?'买单':'卖单'} 已挂 ✓`);
-  document.getElementById('oSize').value = '';
+  if(type==='market'){const cur=prices[curSym];if(cur)fillOrder(acc,o,applySlippage(cur,side,size),TAKER_FEE);}
+  saveAccount(acc);toast(`${side==='buy'?'买单':'卖单'} ✓`);
+  document.getElementById('oSize').value='';
 }
 
-// ══════════════════════════════════════════
-// UI — Account panel
-// ══════════════════════════════════════════
-function renderAccount() {
-  const acc = getAccount();
-  let pnl = 0;
-  for (const [sym, pos] of Object.entries(acc.positions)) {
-    const p = prices[sym] || 0;
-    pnl += pos.side==='long' ? (p-pos.entryPrice)*pos.size : (pos.entryPrice-p)*pos.size;
-  }
-  document.getElementById('statGrid').innerHTML = `
+// ═══════════════════════════════════════════════════════════
+// ACCOUNT / HISTORY PANELS
+// ═══════════════════════════════════════════════════════════
+function renderAccount(){
+  const acc=getAccount();let pnl=0;
+  for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
+  document.getElementById('statGrid').innerHTML=`
     <div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div>
     <div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div>
     <div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div>
     <div class="stat"><div class="lbl">初始资金</div><div class="val">$${INITIAL_BALANCE.toLocaleString()}</div></div>`;
-
-  document.getElementById('posDiv').innerHTML = Object.keys(acc.positions).length
-    ? Object.entries(acc.positions).map(([sym,pos]) => {
-        const p = prices[sym]||0;
-        const pnl2 = pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;
-        return `<div class="pos-row"><b style="color:var(--accent)">${sym}</b>
-          <span style="color:var(--muted);margin:0 3px">${pos.side.toUpperCase()}</span>
-          ${pos.size.toFixed(4)} @ $${pos.entryPrice.toFixed(2)}
-          <span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`;
-      }).join('')
-    : '<div class="empty">暂无持仓</div>';
-
-  document.getElementById('ordDiv').innerHTML = acc.orders.length
-    ? acc.orders.map(o => `<div class="ord-row">
-        <div><span style="color:${o.side==='buy'?'var(--green)':'var(--red)'}"><b>${o.side==='buy'?'买':'卖'}</b></span>
-        <span style="color:var(--muted);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}
-        ${o.tp?`<span style="color:var(--green);font-size:9px"> TP:${o.tp}</span>`:''}
-        ${o.sl?`<span style="color:var(--red);font-size:9px"> SL:${o.sl}</span>`:''}
-        </div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join('')
-    : '<div class="empty">暂无挂单</div>';
+  document.getElementById('posDiv').innerHTML=Object.keys(acc.positions).length
+    ?Object.entries(acc.positions).map(([sym,pos])=>{const p=prices[sym]||0;const pnl2=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;return`<div class="pos-row"><b style="color:var(--ac)">${sym}</b><span style="color:var(--mu);margin:0 3px">${pos.side.toUpperCase()}</span>${pos.size.toFixed(4)}@$${pos.entryPrice.toFixed(2)}<span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`;}).join('')
+    :'<div class="empty">暂无持仓</div>';
+  document.getElementById('ordDiv').innerHTML=acc.orders.length
+    ?acc.orders.map(o=>`<div class="ord-row"><div><span style="color:${o.side==='buy'?'var(--gn)':'var(--rd)'}"><b>${o.side==='buy'?'买':'卖'}</b></span><span style="color:var(--mu);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}${o.tp?`<span style="color:var(--gn);font-size:9px"> TP:${o.tp}</span>`:''}${o.sl?`<span style="color:var(--rd);font-size:9px"> SL:${o.sl}</span>`:''}</div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join('')
+    :'<div class="empty">暂无挂单</div>';
+}
+function cancelOrder(id){const acc=getAccount();acc.orders=acc.orders.filter(o=>o.id!==id);saveAccount(acc);renderAccount();toast('订单已撤销');}
+function resetAccount(){if(!confirm('确认重置？所有数据清空'))return;localStorage.removeItem('account');toast('账户已重置');renderAccount();}
+function renderHistory(){
+  const acc=getAccount(),el=document.getElementById('histDiv');
+  if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
+  el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
 }
 
-function cancelOrder(id) {
-  const acc = getAccount();
-  acc.orders = acc.orders.filter(o => o.id !== id);
-  saveAccount(acc); renderAccount(); toast('订单已撤销');
-}
-
-function resetAccount() {
-  if (!confirm('确认重置？所有数据清空')) return;
-  localStorage.removeItem('account'); toast('账户已重置'); renderAccount();
-}
-
-function renderHistory() {
-  const acc = getAccount();
-  const el = document.getElementById('histDiv');
-  if (!acc.history.length) { el.innerHTML='<div class="empty">暂无记录</div>'; return; }
-  el.innerHTML = [...acc.history].reverse().slice(0,50).map(h =>
-    `<div class="hist-row">
-      <span style="color:${h.side==='buy'?'var(--green)':'var(--red)'}">${h.side==='buy'?'买':'卖'}</span>
-      <span style="color:var(--muted)">${h.symbol}</span>
-      <span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span>
-      <span style="color:var(--muted);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span>
-    </div>`).join('');
-}
-
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // TABS
-// ══════════════════════════════════════════
-let activeTab = 'order';
-function switchTab(name, el) {
-  activeTab = name;
-  ['order','account','history'].forEach(t => document.getElementById('pane-'+t).style.display = t===name?'':'none');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+// ═══════════════════════════════════════════════════════════
+function switchTab(name,el){
+  activeTab=name;
+  ['order','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  if (name==='account') renderAccount();
-  if (name==='history') renderHistory();
+  if(name==='account')renderAccount();
+  if(name==='history')renderHistory();
 }
-
-// ══════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════
 let toastTimer;
-function toast(msg, isErr=0) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.style.background = isErr?'#da3633':'#1f6feb';
-  el.style.display = 'block'; clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>el.style.display='none', 2500);
-}
+function toast(msg,isErr=0){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isErr?'#da3633':'#1f6feb';el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2500);}
+setInterval(()=>{if(activeTab==='account')renderAccount();},3000);
 
-// auto-refresh account every 3s
-setInterval(() => { if (activeTab==='account') renderAccount(); }, 3000);
-
-// ══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // BOOT
-// ══════════════════════════════════════════
-initChart();
+// ═══════════════════════════════════════════════════════════
+initCharts();
+initCanvas();
 buildSymTabs();
-buildTfBar();
-loadKlines(curSym, curTf).then(() => connectWS());
+buildCtrlBar();
+loadKlines(curSym,curTf).then(()=>connectWS());
+// set cursor tool (canvas pointer-events off by default)
+canvas.style.pointerEvents='none';
 </script>
 </body>
 </html>
