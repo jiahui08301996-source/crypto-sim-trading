@@ -135,6 +135,20 @@ header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;d
 /* History filter */
 .hist-filter-btn{padding:3px 8px;border-radius:3px;border:1px solid var(--bd);background:none;color:var(--mu);cursor:pointer;font-size:11px}
 .hist-filter-btn.active{background:#1f6feb22;border-color:var(--ac);color:var(--ac)}
+/* Bottom panel */
+#bottom-panel{background:var(--sf);border-top:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;height:220px;transition:height .2s}
+#bottom-panel.collapsed{height:34px}
+#bottom-tab-bar{display:flex;align-items:center;gap:2px;padding:0 8px;border-bottom:1px solid var(--bd);height:34px;flex-shrink:0;overflow-x:auto}
+#bottom-tab-bar::-webkit-scrollbar{height:0}
+.btab{padding:4px 12px;background:none;border:none;color:var(--mu);cursor:pointer;font-size:12px;white-space:nowrap;position:relative;height:100%}
+.btab.active{color:var(--ac);font-weight:600}
+.btab.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--ac)}
+.btab-action{padding:2px 8px;background:none;border:1px solid;border-radius:4px;cursor:pointer;font-size:11px}
+#bp-collapse{background:none;border:none;color:var(--mu);cursor:pointer;font-size:12px;padding:4px 8px;margin-left:4px}
+#bottom-content{flex:1;overflow:hidden;display:flex}
+.bpane{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* Bottom panel in column layout on mobile */
+@media(max-width:700px){#bottom-panel{height:180px}}
 /* Main layout */
 .layout{display:flex;flex:1;overflow:hidden}
 /* Draw toolbar */
@@ -328,14 +342,10 @@ input:focus,select:focus{border-color:var(--ac)}
   </div>
 
   <div class="panel">
-    <!-- 6 tabs, scrollable -->
-    <div class="tabs" style="overflow-x:auto;flex-shrink:0;display:flex">
-      <div class="tab active" style="white-space:nowrap" onclick="switchTab('order',this)">下单</div>
-      <div class="tab" style="white-space:nowrap" onclick="switchTab('pos',this)">仓位</div>
-      <div class="tab" style="white-space:nowrap" onclick="switchTab('curord',this)">当前委托</div>
-      <div class="tab" style="white-space:nowrap" onclick="switchTab('histord',this)">历史委托</div>
-      <div class="tab" style="white-space:nowrap" onclick="switchTab('book',this)">盘口</div>
-      <div class="tab" style="white-space:nowrap" onclick="switchTab('trades',this)">成交</div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('order',this)">下单</div>
+      <div class="tab" onclick="switchTab('book',this)">盘口</div>
+      <div class="tab" onclick="switchTab('trades',this)">成交</div>
     </div>
 
     <!-- 下单 -->
@@ -373,30 +383,6 @@ input:focus,select:focus{border-color:var(--ac)}
       <button class="btn-sm" onclick="resetAccount()">⚠ 重置账户 ($100,000)</button>
     </div>
 
-    <!-- 仓位 -->
-    <div class="tab-body" id="pane-pos" style="display:none;padding:0">
-      <div id="acc-summary"></div>
-      <div id="pos-list"></div>
-    </div>
-
-    <!-- 当前委托 -->
-    <div class="tab-body" id="pane-curord" style="display:none;padding:0">
-      <div style="display:flex;justify-content:flex-end;padding:6px 10px;border-bottom:1px solid var(--bd)">
-        <button onclick="cancelAllOrders()" style="font-size:11px;color:var(--rd);background:none;border:1px solid var(--rd);border-radius:4px;padding:2px 8px;cursor:pointer">撤销全部</button>
-      </div>
-      <div id="cur-ord-list"></div>
-    </div>
-
-    <!-- 历史委托 -->
-    <div class="tab-body" id="pane-histord" style="display:none;padding:0">
-      <div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--bd)">
-        <button class="hist-filter-btn active" data-f="all"   onclick="setHistFilter('all',this)">全部</button>
-        <button class="hist-filter-btn"        data-f="filled" onclick="setHistFilter('filled',this)">已成交</button>
-        <button class="hist-filter-btn"        data-f="cancelled" onclick="setHistFilter('cancelled',this)">已撤销</button>
-      </div>
-      <div id="hist-ord-list"></div>
-    </div>
-
     <!-- 盘口 -->
     <div class="tab-body" id="pane-book" style="display:none;padding:6px 8px">
       <div class="book-hdr"><span>价格</span><span>数量</span><span style="text-align:right">成交额</span></div>
@@ -416,6 +402,38 @@ input:focus,select:focus{border-color:var(--ac)}
       <canvas id="equity-canvas" height="80"></canvas>
       <span id="equity-range-lbl"></span>
       <div id="statGrid"></div><div id="posDiv"></div><div id="ordDiv"></div><div id="histDiv"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM PANEL: Positions / Orders / History -->
+<div id="bottom-panel" style="display:none">
+  <div id="bottom-tab-bar">
+    <button id="btab-pos"     class="btab active" onclick="switchBTab('pos',this)">仓位(0)</button>
+    <button id="btab-curord"  class="btab" onclick="switchBTab('curord',this)">当前委托(0)</button>
+    <button id="btab-histord" class="btab" onclick="switchBTab('histord',this)">历史委托</button>
+    <div style="flex:1"></div>
+    <button class="btab-action" onclick="cancelAllOrders()" id="cancelAllBtn" style="display:none;color:var(--rd);border-color:var(--rd)">撤销全部</button>
+    <div id="hist-filters" style="display:none;gap:3px;margin-right:4px">
+      <button class="hist-filter-btn active" onclick="setHistFilter('all',this)">全部</button>
+      <button class="hist-filter-btn" onclick="setHistFilter('filled',this)">已成交</button>
+      <button class="hist-filter-btn" onclick="setHistFilter('cancelled',this)">已撤销</button>
+    </div>
+    <button id="bp-collapse" onclick="toggleBottomPanel()" title="收起/展开">▼</button>
+  </div>
+  <div id="bottom-content">
+    <!-- 仓位 -->
+    <div id="bpane-pos" class="bpane">
+      <div id="acc-summary" style="border-bottom:1px solid var(--bd)"></div>
+      <div id="pos-list" style="overflow-y:auto;flex:1"></div>
+    </div>
+    <!-- 当前委托 -->
+    <div id="bpane-curord" class="bpane" style="display:none">
+      <div id="cur-ord-list" style="overflow-y:auto;height:100%"></div>
+    </div>
+    <!-- 历史委托 -->
+    <div id="bpane-histord" class="bpane" style="display:none">
+      <div id="hist-ord-list" style="overflow-y:auto;height:100%"></div>
     </div>
   </div>
 </div>
@@ -1041,9 +1059,10 @@ function checkOrders(sym,price,high,low){
   for(const{o,fp,fee,closeOf}of toFill){fillOrder(acc,o,fp,fee);if(closeOf)acc.orders=acc.orders.filter(x=>x.id!==closeOf);changed=true;toast(`${o.side==='buy'?'✅买入':'🔴卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);}
   if(changed){
     saveAccount(acc);
-    if(activeTab==='pos') renderPositions();
-    if(activeTab==='curord') renderOpenOrders();
-    if(activeTab==='histord') renderHistOrders();
+    updateBottomBadges();
+    if(activeBTab==='pos')     renderPositions();
+    if(activeBTab==='curord')  renderOpenOrders();
+    if(activeBTab==='histord') renderHistOrders();
   }
 }
 function fillOrder(acc,o,fp,fr){
@@ -1108,10 +1127,11 @@ function placeOrder(side){
     if(cur){fillOrder(acc,o,asl(cur,side,size),TAKER_FEE);}
   }
   saveAccount(acc);
+  updateBottomBadges();
   toast(`${side==='buy'?'🟢 买单':'🔴 卖单'} 已提交`);
   document.getElementById('oSize').value='';
   updateOrderFormInfo();
-  if(activeTab==='curord') renderOpenOrders();
+  if(activeBTab==='curord') renderOpenOrders();
 }
 
 // ── Positions ──────────────────────────────────────────
@@ -1258,9 +1278,10 @@ function cancelOrder(id){
   if(o) acc.history.push({...o,status:'cancelled',fillPrice:0,fee:0,cancelTime:Date.now()});
   acc.orders=acc.orders.filter(x=>x.id!==id);
   saveAccount(acc);
-  if(activeTab==='curord') renderOpenOrders();
-  if(activeTab==='histord') renderHistOrders();
-  if(activeTab==='pos') renderPositions();
+  updateBottomBadges();
+  if(activeBTab==='curord')  renderOpenOrders();
+  if(activeBTab==='histord') renderHistOrders();
+  if(activeBTab==='pos')     renderPositions();
   toast('撤单成功');
 }
 function resetAccount(){if(!confirm('确认重置？所有数据清空'))return;localStorage.removeItem('account');toast('账户已重置');renderAccount();}
@@ -1269,25 +1290,52 @@ function renderHistory(){
   if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
   el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
 }
-const ALL_PANES=['order','pos','curord','histord','book','trades'];
+const ALL_PANES=['order','book','trades'];
 function switchTab(name,el){
   activeTab=name;
   ALL_PANES.forEach(t=>{const p=document.getElementById('pane-'+t);if(p)p.style.display=t===name?'':'none';});
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  if(name==='pos')     renderPositions();
-  if(name==='curord')  renderOpenOrders();
-  if(name==='histord') renderHistOrders();
   if(name==='book'){renderOrderBook();renderBookMidPrice();}
   if(name==='trades')  renderTrades();
   if(name==='order')   updateOrderFormInfo();
 }
+
+let activeBTab='pos';
+function switchBTab(name,el){
+  activeBTab=name;
+  ['pos','curord','histord'].forEach(t=>{
+    const p=document.getElementById('bpane-'+t);if(p)p.style.display=t===name?'flex':'none';
+  });
+  document.querySelectorAll('.btab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('cancelAllBtn').style.display=name==='curord'?'':'none';
+  document.getElementById('hist-filters').style.display=name==='histord'?'flex':'none';
+  if(name==='pos')     renderPositions();
+  if(name==='curord')  renderOpenOrders();
+  if(name==='histord') renderHistOrders();
+}
+
+let _bpCollapsed=false;
+function toggleBottomPanel(){
+  _bpCollapsed=!_bpCollapsed;
+  document.getElementById('bottom-panel').classList.toggle('collapsed',_bpCollapsed);
+  document.getElementById('bp-collapse').textContent=_bpCollapsed?'▲':'▼';
+}
+
+function updateBottomBadges(){
+  const acc=getAccount();
+  const pc=Object.keys(acc.positions).length,oc=acc.orders.length;
+  document.getElementById('btab-pos').textContent=`仓位(${pc})`;
+  document.getElementById('btab-curord').textContent=`当前委托(${oc})`;
+}
 let toastTimer;
 function toast(msg,isErr=0){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isErr?'#da3633':'#1f6feb';el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2500);}
 setInterval(()=>{
-  if(activeTab==='pos') renderPositions();
-  if(activeTab==='curord') renderOpenOrders();
-  if(activeTab==='order') updateOrderFormInfo();
+  updateBottomBadges();
+  if(activeBTab==='pos')    renderPositions();
+  if(activeBTab==='curord') renderOpenOrders();
+  if(activeTab==='order')   updateOrderFormInfo();
 },3000);
 
 // ════════════════════════════════════════════════════════
@@ -1659,10 +1707,13 @@ async function startWith(exId) {
   document.getElementById('mainHeader').style.display = 'flex';
   document.getElementById('ctrlBar').style.display    = 'flex';
   document.getElementById('mainLayout').style.display = 'flex';
+  document.getElementById('bottom-panel').style.display = 'flex';
 
   // load default symbol (already cached, instant) + connect WS
   await loadKlines(curSym, curTfMin);
   connectWS();
+  updateBottomBadges();
+  renderPositions();
 
   // fade out splash last
   const splash = document.getElementById('splash');
