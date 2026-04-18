@@ -847,22 +847,26 @@ function updateSeriesCandle(c){
 // ════════════════════════════════════════════════════════
 function switchChartType(type) {
   chartType = type;
-  document.querySelectorAll('.ct-btn').forEach(b => b.classList.toggle('active', b.dataset.ct === type));
-  if (mainChart && mainSeries) {
-    mainChart.removeSeries(mainSeries);
-    mainSeries = null;
+  document.querySelectorAll('.ct-btn').forEach(b => b.classList.toggle('active', b.title === type));
+  if (mainChart && candleSeries) {
+    try { mainChart.removeSeries(candleSeries); } catch(e) {}
+    candleSeries = null;
   }
-  candleSeries = null;
-  lineSeries = null;
-  areaSeries = null;
-  barSeries = null;
+  if (mainChart && lineSeries) {
+    try { mainChart.removeSeries(lineSeries); } catch(e) {}
+    lineSeries = null;
+  }
+  if (mainChart && areaSeries) {
+    try { mainChart.removeSeries(areaSeries); } catch(e) {}
+    areaSeries = null;
+  }
+  if (mainChart && barSeries) {
+    try { mainChart.removeSeries(barSeries); } catch(e) {}
+    barSeries = null;
+  }
   createMainSeries();
   if (chartData && chartData.length) setSeriesData(chartData);
 }
-
-// ════════════════════════════════════════════════════════
-// ZOOM
-// ════════════════════════════════════════════════════════
 function zoomIn() {
   if (!mainChart) return;
   var r = mainChart.timeScale().getVisibleLogicalRange();
