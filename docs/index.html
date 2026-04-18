@@ -147,7 +147,7 @@ input:focus, select:focus { border-color: var(--accent); }
 // ════════════════════════════════════════
 // CONFIG
 // ════════════════════════════════════════
-const SYMBOLS = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT'];
+const SYMBOLS = ['BTCUSDC','BTCUSDT','ETHUSDC','ETHUSDT','SOLUSDT','BNBUSDT'];
 const INITIAL_BALANCE = 100_000;
 const TAKER_FEE = 0.0005;
 const MAKER_FEE = 0.0002;
@@ -156,7 +156,7 @@ const SLIPPAGE = 0.0005;
 // ════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════
-let curSym = 'BTCUSDT';
+let curSym = 'BTCUSDC';
 let prices = {};
 let prevPrices = {};
 let tickCounts = {};
@@ -486,7 +486,7 @@ function renderHistory() {
 // ════════════════════════════════════════
 function buildSymTabs() {
   document.getElementById('symTabs').innerHTML = SYMBOLS.map(s =>
-    `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${s.replace('USDT','')}</div>`
+    `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${s.replace('USDT','/T').replace('USDC','/C')}</div>`
   ).join('');
 }
 
