@@ -2,75 +2,71 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>模拟交易平台</title>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0d1117;--sf:#161b22;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ac:#58a6ff;--gn:#3fb950;--rd:#f85149}
 body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',sans-serif;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-
 /* Header */
-header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+header{background:var(--sf);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .logo{font-size:13px;color:var(--ac);font-weight:700;white-space:nowrap}
-.sym-tabs{display:flex;gap:3px;flex-wrap:wrap}
-.sym-tab{padding:3px 8px;border-radius:4px;border:1px solid var(--bd);background:var(--bg);color:var(--mu);cursor:pointer;font-size:11px}
-.sym-tab.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.price-wrap{margin-left:auto;text-align:right;line-height:1.3}
+/* Exchange tabs */
+.ex-tabs{display:flex;gap:3px}
+.ex-tab{padding:3px 10px;border-radius:4px;border:1px solid var(--bd);background:var(--bg);color:var(--mu);cursor:pointer;font-size:11px;font-weight:600}
+.ex-tab.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+/* Symbol button */
+#symBtn{padding:3px 10px;border-radius:4px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+#symBtn:hover{border-color:var(--ac)}
+.price-wrap{margin-left:auto;text-align:right;line-height:1.2}
 .live-price{font-size:18px;font-weight:700}
 .live-price.up{color:var(--gn)}.live-price.down{color:var(--rd)}
 .sub-info{font-size:10px;color:var(--mu)}
 .ws-dot{width:7px;height:7px;border-radius:50%;background:var(--rd);display:inline-block}
 .ws-dot.on{background:var(--gn)}
-
 /* TF + Indicator bar */
-.ctrl-bar{background:var(--sf);border-bottom:1px solid var(--bd);padding:4px 10px;display:flex;gap:4px;align-items:center;flex-shrink:0;overflow-x:auto;white-space:nowrap}
+.ctrl-bar{background:var(--sf);border-bottom:1px solid var(--bd);padding:4px 8px;display:flex;gap:3px;align-items:center;flex-shrink:0;overflow-x:auto;white-space:nowrap}
 .ctrl-bar::-webkit-scrollbar{height:3px}.ctrl-bar::-webkit-scrollbar-thumb{background:var(--bd)}
 .tf-btn,.ind-btn{padding:3px 8px;border-radius:3px;border:none;background:transparent;color:var(--mu);cursor:pointer;font-size:11px;flex-shrink:0}
 .tf-btn.active{background:#1f6feb22;color:var(--ac);font-weight:600}
 .ind-btn{border:1px solid var(--bd)}
 .ind-btn.active{background:#1f6feb33;border-color:var(--ac);color:var(--ac)}
-.sep{width:1px;height:16px;background:var(--bd);margin:0 4px;flex-shrink:0}
-
+.sep{width:1px;height:16px;background:var(--bd);margin:0 3px;flex-shrink:0}
 /* Main layout */
 .layout{display:flex;flex:1;overflow:hidden}
-
 /* Draw toolbar */
 #draw-tb{display:flex;flex-direction:column;gap:3px;padding:6px 4px;background:var(--sf);border-right:1px solid var(--bd);flex-shrink:0;width:36px;align-items:center}
-.dtool{width:28px;height:28px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--mu);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dtool{width:28px;height:28px;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--mu);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .dtool.active{background:#1f6feb33;border-color:var(--ac);color:var(--ac)}
-.dtool:hover:not(.active){border-color:var(--mu)}
-.dtool-sep{width:24px;height:1px;background:var(--bd);margin:2px 0}
-
+.dtool-sep{width:22px;height:1px;background:var(--bd);margin:2px 0}
 /* Chart area */
 #chart-area{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
 #main-wrap{flex:1;position:relative;min-height:0}
-#main-chart{width:100%;height:100%}
+#main-chart,#sub-chart{width:100%;height:100%}
 #draw-canvas{position:absolute;top:0;left:0;z-index:5;pointer-events:none}
 #sub-wrap{height:150px;flex-shrink:0;border-top:1px solid var(--bd);position:relative}
-#sub-chart{width:100%;height:100%}
 .sub-label{position:absolute;top:4px;left:8px;font-size:10px;color:var(--mu);z-index:2;pointer-events:none}
-.loading-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0d111788;z-index:20;font-size:12px;color:var(--mu)}
-
-/* Right panel */
-.panel{width:280px;background:var(--sf);border-left:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0d111788;z-index:20;font-size:12px;color:var(--mu)}
+/* Panel */
+.panel{width:275px;background:var(--sf);border-left:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0}
 @media(max-width:700px){
   .layout{flex-direction:column}
   #draw-tb{flex-direction:row;width:100%;border-right:none;border-bottom:1px solid var(--bd);padding:4px;justify-content:center;overflow-x:auto;height:auto}
   #chart-area{height:42vh}
   .panel{width:100%;border-left:none;border-top:1px solid var(--bd);flex:1}
-  #sub-wrap{height:120px}
+  #sub-wrap{height:110px}
 }
 .tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
-.tab{flex:1;padding:8px;text-align:center;font-size:12px;cursor:pointer;color:var(--mu);border-bottom:2px solid transparent}
+.tab{flex:1;padding:7px;text-align:center;font-size:12px;cursor:pointer;color:var(--mu);border-bottom:2px solid transparent}
 .tab.active{color:var(--ac);border-bottom-color:var(--ac)}
 .tab-body{flex:1;overflow-y:auto;padding:10px}
 .fg{margin-bottom:8px}
 label{font-size:11px;color:var(--mu);display:block;margin-bottom:3px}
-input,select{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--tx);font-size:12px;outline:none}
+input,select{width:100%;padding:5px 7px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;color:var(--tx);font-size:12px;outline:none}
 input:focus,select:focus{border-color:var(--ac)}
 .btn-row{display:flex;gap:6px;margin-top:10px}
-.btn{flex:1;padding:8px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
+.btn{flex:1;padding:7px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-buy{background:#238636;color:#fff}.btn-sell{background:#da3633;color:#fff}
 .btn-sm{width:100%;padding:5px;background:var(--bd);color:var(--mu);border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-top:6px}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
@@ -86,14 +82,35 @@ input:focus,select:focus{border-color:var(--ac)}
 .hist-row{font-size:11px;padding:4px 0;border-bottom:1px solid #21262d;display:flex;gap:5px;align-items:center}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);padding:7px 14px;border-radius:6px;font-size:12px;display:none;z-index:999;color:#fff;white-space:nowrap}
 
-/* MA settings popup */
-#ma-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:16px;z-index:100;display:none;width:220px}
-#ma-popup h3{font-size:13px;margin-bottom:12px;color:var(--ac)}
-#ma-popup .ma-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-#ma-popup .ma-row label{width:50px;font-size:11px;color:var(--mu)}
-#ma-popup .ma-row input{flex:1;padding:4px 6px}
-#ma-popup .ma-row input[type=color]{padding:0;width:32px;height:24px;cursor:pointer;border:none;background:none}
-.popup-btn{padding:5px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px}
+/* Symbol picker modal */
+#sym-modal{position:fixed;inset:0;z-index:200;display:none;background:#000a}
+.sym-modal-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sf);border:1px solid var(--bd);border-radius:10px;width:min(520px,96vw);max-height:80vh;display:flex;flex-direction:column}
+.sym-modal-hd{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sym-modal-hd h3{font-size:13px;color:var(--tx);margin-right:auto}
+#symSearch{width:160px;padding:5px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:5px;color:var(--tx);font-size:12px;outline:none}
+#symSearch:focus{border-color:var(--ac)}
+.close-btn{background:none;border:none;color:var(--mu);cursor:pointer;font-size:16px;padding:0 4px}
+.sym-modal-ex{display:flex;gap:4px;padding:8px 14px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.sex-tab{padding:4px 12px;border-radius:4px;border:1px solid var(--bd);background:var(--bg);color:var(--mu);cursor:pointer;font-size:12px;font-weight:600}
+.sex-tab.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.sym-modal-body{flex:1;overflow-y:auto;padding:8px 14px}
+.cat-title{font-size:10px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bd)}
+.sym-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:5px;margin-bottom:4px}
+.sym-item{padding:6px 8px;border:1px solid var(--bd);border-radius:5px;cursor:pointer;font-size:11px;background:var(--bg);display:flex;flex-direction:column;gap:2px}
+.sym-item:hover{border-color:var(--ac);background:#1f6feb11}
+.sym-item.active{border-color:var(--ac);background:#1f6feb22}
+.sym-item .sname{font-weight:700;color:var(--tx)}
+.sym-item .sprice{font-size:10px;color:var(--mu)}
+.sym-item .schg{font-size:10px}
+
+/* MA popup */
+#ma-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:14px;z-index:100;display:none;width:210px}
+#ma-popup h3{font-size:12px;margin-bottom:10px;color:var(--ac)}
+.ma-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.ma-row label{width:40px;font-size:11px;color:var(--mu)}
+.ma-row input[type=number]{flex:1;padding:4px 5px}
+.ma-row input[type=color]{padding:0;width:28px;height:22px;cursor:pointer;border:none;background:none}
+.popup-btn{padding:4px 12px;border:none;border-radius:4px;cursor:pointer;font-size:11px}
 .popup-ok{background:#1f6feb;color:#fff}.popup-cl{background:var(--bd);color:var(--mu)}
 </style>
 </head>
@@ -101,40 +118,46 @@ input:focus,select:focus{border-color:var(--ac)}
 
 <header>
   <div class="logo">📈 模拟交易</div>
-  <div class="sym-tabs" id="symTabs"></div>
+  <div class="ex-tabs">
+    <button class="ex-tab active" onclick="setExchange('binance')">Binance</button>
+    <button class="ex-tab" onclick="setExchange('okx')">OKX</button>
+    <button class="ex-tab" onclick="setExchange('bybit')">Bybit</button>
+  </div>
+  <button id="symBtn" onclick="openSymModal()">
+    <span id="symBtnText">BTC/USDC</span>
+    <span style="color:var(--mu);font-size:10px">▼</span>
+  </button>
   <div class="price-wrap">
     <span class="ws-dot" id="wsDot"></span>
     <span class="live-price" id="livePrice">--</span><br>
-    <span class="sub-info" id="subInfo">连接中...</span>
+    <span class="sub-info" id="chgInfo">加载中...</span>
   </div>
 </header>
 
 <div class="ctrl-bar" id="ctrlBar"></div>
 
 <div class="layout">
-
-  <!-- 画图工具栏 -->
   <div id="draw-tb">
     <button class="dtool active" data-tool="cursor" title="光标" onclick="setTool(this)">⊹</button>
     <div class="dtool-sep"></div>
-    <button class="dtool" data-tool="hline"    title="水平线"   onclick="setTool(this)">—</button>
-    <button class="dtool" data-tool="vline"    title="垂直线"   onclick="setTool(this)">|</button>
-    <button class="dtool" data-tool="trend"    title="趋势线"   onclick="setTool(this)">╱</button>
-    <button class="dtool" data-tool="ray"      title="射线"     onclick="setTool(this)">→</button>
-    <button class="dtool" data-tool="hray"     title="水平射线" onclick="setTool(this)">↦</button>
+    <button class="dtool" data-tool="hline"  title="水平线"   onclick="setTool(this)">—</button>
+    <button class="dtool" data-tool="vline"  title="垂直线"   onclick="setTool(this)">|</button>
+    <button class="dtool" data-tool="trend"  title="趋势线"   onclick="setTool(this)">╱</button>
+    <button class="dtool" data-tool="ray"    title="射线"     onclick="setTool(this)">→</button>
+    <button class="dtool" data-tool="hray"   title="水平射线" onclick="setTool(this)">↦</button>
     <div class="dtool-sep"></div>
-    <button class="dtool" data-tool="rect"     title="矩形"     onclick="setTool(this)">▭</button>
-    <button class="dtool" data-tool="fib"      title="斐波那契" onclick="setTool(this)">φ</button>
+    <button class="dtool" data-tool="rect"   title="矩形"     onclick="setTool(this)">▭</button>
+    <button class="dtool" data-tool="fib"    title="斐波那契" onclick="setTool(this)">φ</button>
     <div class="dtool-sep"></div>
-    <button class="dtool" id="undoBtn"  title="撤销" onclick="undoDrawing()">↩</button>
-    <button class="dtool" id="clearBtn" title="清空" onclick="clearDrawings()">🗑</button>
+    <button class="dtool" title="撤销" onclick="undoDrawing()">↩</button>
+    <button class="dtool" title="清空" onclick="clearDrawings()">🗑</button>
   </div>
 
   <div id="chart-area">
     <div id="main-wrap">
       <div id="main-chart"></div>
       <canvas id="draw-canvas"></canvas>
-      <div class="loading-overlay" id="loadingOverlay">加载K线...</div>
+      <div class="ov" id="ov">连接中...</div>
     </div>
     <div id="sub-wrap" style="display:none">
       <div class="sub-label" id="subLabel">RSI(14)</div>
@@ -175,7 +198,20 @@ input:focus,select:focus{border-color:var(--ac)}
   </div>
 </div>
 
-<!-- MA设置弹窗 -->
+<!-- Symbol Picker Modal -->
+<div id="sym-modal" onclick="e=>e.target===this&&closeSymModal()">
+  <div class="sym-modal-box">
+    <div class="sym-modal-hd">
+      <h3>选择交易对</h3>
+      <input id="symSearch" placeholder="搜索..." oninput="filterSymbols()" autocomplete="off">
+      <button class="close-btn" onclick="closeSymModal()">✕</button>
+    </div>
+    <div class="sym-modal-ex" id="symModalEx"></div>
+    <div class="sym-modal-body" id="symList"></div>
+  </div>
+</div>
+
+<!-- MA Popup -->
 <div id="ma-popup">
   <h3>⚙ MA 设置</h3>
   <div class="ma-row"><label>MA1</label><input id="ma1p" type="number" value="7" min="1"><input id="ma1c" type="color" value="#f6c90e"></div>
@@ -183,640 +219,480 @@ input:focus,select:focus{border-color:var(--ac)}
   <div class="ma-row"><label>MA3</label><input id="ma3p" type="number" value="99" min="1"><input id="ma3c" type="color" value="#ff6d00"></div>
   <div style="display:flex;gap:8px;margin-top:10px">
     <button class="popup-btn popup-ok" onclick="applyMA()">应用</button>
-    <button class="popup-btn popup-cl" onclick="closeMAPopup()">关闭</button>
+    <button class="popup-btn popup-cl" onclick="document.getElementById('ma-popup').style.display='none'">关闭</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════════════════
-const SYMBOLS  = ['BTCUSDC','BTCUSDT','ETHUSDC','ETHUSDT','SOLUSDT','BNBUSDT'];
-const TIMEFRAMES = [
-  {l:'1分',v:'1m'},{l:'3分',v:'3m'},{l:'5分',v:'5m'},{l:'15分',v:'15m'},
-  {l:'30分',v:'30m'},{l:'1时',v:'1h'},{l:'2时',v:'2h'},{l:'4时',v:'4h'},
-  {l:'8时',v:'8h'},{l:'日线',v:'1d'},{l:'周线',v:'1w'},
-];
-const INDICATORS = [
-  {id:'ma',  label:'MA'},
-  {id:'ema', label:'EMA'},
-  {id:'boll',label:'BOLL'},
-  {id:'vol', label:'成交量'},
-  {id:'rsi', label:'RSI'},
-  {id:'macd',label:'MACD'},
-  {id:'kdj', label:'KDJ'},
-  {id:'wr',  label:'WR'},
-];
-const INITIAL_BALANCE = 100_000;
-const TAKER_FEE=0.0005, MAKER_FEE=0.0002, SLIPPAGE=0.0005;
+// ════════════════════════════════════════════════════════
+// EXCHANGE CONFIG
+// ════════════════════════════════════════════════════════
+const EXCHANGES = {
+  binance: {
+    name:'Binance', color:'#f0b90b',
+    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1h',120:'2h',240:'4h',480:'8h',1440:'1d',10080:'1w'},
+    fmtSym: s => s,           // BTCUSDT as-is
+    fmtDisplay: s => s.replace('USDC','/C').replace('USDT','/T').replace('BTC','BTC/'),
+    async getKlines(sym,iv,startMs){
+      const url=`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&startTime=${startMs}&limit=1000`;
+      const r=await fetch(url); if(!r.ok) return null;
+      const raw=await r.json();
+      return raw.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:k[6]}));
+    },
+    buildWS(syms,tf){
+      const sl=syms[0].toLowerCase();
+      const streams=[...syms.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${tf}`].join('/');
+      return `wss://stream.binance.com:9443/stream?streams=${streams}`;
+    },
+    parseWS(data,stream){
+      if(stream.includes('@ticker')) return {type:'ticker',sym:data.s,price:+data.c,chg:+data.P};
+      if(stream.includes('@kline')){const k=data.k;return{type:'kline',sym:k.s,tf:k.i,time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};}
+      return null;
+    },
+    categories:{
+      '主流':['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT'],
+      'USDC对':['BTCUSDC','ETHUSDC','SOLUSDC','BNBUSDC','XRPUSDC'],
+      'Layer1公链':['ADAUSDT','AVAXUSDT','DOTUSDT','NEARUSDT','ATOMUSDT','APTUSDT','SUIUSDT','ALGOUSDT','XLMUSDT','VETUSDT','TRXUSDT','ETCUSDT'],
+      'Layer2':['MATICUSDT','ARBUSDT','OPUSDT','STRKUSDT','IMXUSDT'],
+      'DeFi':['UNIUSDT','LINKUSDT','AAVEUSDT','SUSHIUSDT','CRVUSDT','MKRUSDT','COMPUSDT','SNXUSDT'],
+      'Meme':['DOGEUSDT','SHIBUSDT','PEPEUSDT','FLOKIUSDT','WIFUSDT','BONKUSDT','MEMEUSDT'],
+      '其他':['LTCUSDT','BCHUSDT','FILUSDT','AXSUSDT','SANDUSDT','MANAUSDT','GALAUSDT','CHZUSDT','ENAUSDT','FETUSDT'],
+    }
+  },
+  okx: {
+    name:'OKX', color:'#00d4ff',
+    tfMap:{1:'1m',3:'3m',5:'5m',15:'15m',30:'30m',60:'1H',120:'2H',240:'4H',480:'8H',1440:'1D',10080:'1W'},
+    fmtSym: s=>s,
+    fmtDisplay: s=>s,
+    async getKlines(sym,iv,startMs){
+      // OKX returns newest first, paginate with after param
+      const url=`https://www.okx.com/api/v5/market/history-candles?instId=${sym}&bar=${iv}&after=${startMs}&limit=300`;
+      const r=await fetch(url); if(!r.ok) return null;
+      const json=await r.json(); if(json.code!=='0') return null;
+      return json.data.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:+k[0]+60000})).reverse();
+    },
+    buildWS(syms,tf){return 'wss://ws.okx.com:8443/ws/v5/public';},
+    wsOnOpen(ws,syms,tf){
+      const args=[...syms.map(s=>({channel:'tickers',instId:s})),{channel:`candle${tf}`,instId:syms[0]}];
+      ws.send(JSON.stringify({op:'subscribe',args}));
+    },
+    parseWS(data){
+      if(data.arg?.channel==='tickers'&&data.data?.[0]){const d=data.data[0];return{type:'ticker',sym:d.instId,price:+d.last,chg:+d.sodUtc8?((+d.last-+d.sodUtc8)/+d.sodUtc8*100):0};}
+      if(data.arg?.channel?.startsWith('candle')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.arg.instId,tf:data.arg.channel.replace('candle',''),time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]};}
+      return null;
+    },
+    categories:{
+      '主流':['BTC-USDT','ETH-USDT','OKB-USDT','SOL-USDT','XRP-USDT'],
+      'USDC对':['BTC-USDC','ETH-USDC','SOL-USDC'],
+      'Layer1公链':['ADA-USDT','AVAX-USDT','DOT-USDT','NEAR-USDT','ATOM-USDT','APT-USDT','SUI-USDT','TRX-USDT','ETC-USDT'],
+      'Layer2':['MATIC-USDT','ARB-USDT','OP-USDT'],
+      'DeFi':['UNI-USDT','LINK-USDT','AAVE-USDT','CRV-USDT','MKR-USDT'],
+      'Meme':['DOGE-USDT','SHIB-USDT','PEPE-USDT','FLOKI-USDT','WIF-USDT'],
+      '其他':['LTC-USDT','BCH-USDT','FIL-USDT','AXS-USDT','SAND-USDT'],
+    }
+  },
+  bybit: {
+    name:'Bybit', color:'#ff914d',
+    tfMap:{1:'1',3:'3',5:'5',15:'15',30:'30',60:'60',120:'120',240:'240',480:'480',1440:'D',10080:'W'},
+    fmtSym: s=>s,
+    fmtDisplay: s=>s.replace('USDT','/T').replace('USDC','/C'),
+    async getKlines(sym,iv,startMs){
+      const url=`https://api.bybit.com/v5/market/kline?category=linear&symbol=${sym}&interval=${iv}&start=${startMs}&limit=1000`;
+      const r=await fetch(url); if(!r.ok) return null;
+      const json=await r.json(); if(json.retCode!==0) return null;
+      return json.result.list.map(k=>({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5],closeMs:+k[0]+60000})).reverse();
+    },
+    buildWS(syms,tf){return 'wss://stream.bybit.com/v5/public/linear';},
+    wsOnOpen(ws,syms,tf){
+      const topics=[...syms.map(s=>`tickers.${s}`),`kline.${tf}.${syms[0]}`];
+      ws.send(JSON.stringify({op:'subscribe',args:topics}));
+    },
+    parseWS(data){
+      if(data.topic?.startsWith('tickers.')&&data.data){const d=data.data;return{type:'ticker',sym:d.symbol,price:+d.lastPrice,chg:+d.price24hPcnt*100};}
+      if(data.topic?.startsWith('kline.')&&data.data?.[0]){const k=data.data[0];return{type:'kline',sym:data.topic.split('.')[2],tf:data.topic.split('.')[1],time:Math.floor(k.start/1000),open:+k.open,high:+k.high,low:+k.low,close:+k.close,volume:+k.volume};}
+      return null;
+    },
+    categories:{
+      '主流':['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','BNBUSDT'],
+      'USDC对':['BTCUSDC','ETHUSDC'],
+      'Layer1公链':['ADAUSDT','AVAXUSDT','DOTUSDT','NEARUSDT','ATOMUSDT','APTUSDT','SUIUSDT','TRXUSDT'],
+      'Layer2':['MATICUSDT','ARBUSDT','OPUSDT'],
+      'DeFi':['UNIUSDT','LINKUSDT','AAVEUSDT'],
+      'Meme':['DOGEUSDT','SHIBUSDT','PEPEUSDT','WIFUSDT'],
+      '其他':['LTCUSDT','BCHUSDT','FILUSDT'],
+    }
+  }
+};
 
-// ═══════════════════════════════════════════════════════════
+const TIMEFRAMES=[
+  {l:'1分',m:1},{l:'3分',m:3},{l:'5分',m:5},{l:'15分',m:15},{l:'30分',m:30},
+  {l:'1时',m:60},{l:'2时',m:120},{l:'4时',m:240},{l:'8时',m:480},{l:'日线',m:1440},{l:'周线',m:10080}
+];
+const INDICATORS=[
+  {id:'ma',label:'MA'},{id:'ema',label:'EMA'},{id:'boll',label:'BOLL'},{id:'vol',label:'成交量'},
+  {id:'rsi',label:'RSI'},{id:'macd',label:'MACD'},{id:'kdj',label:'KDJ'},{id:'wr',label:'WR'},
+];
+const INITIAL_BALANCE=100000, TAKER_FEE=0.0005, MAKER_FEE=0.0002, SLIPPAGE=0.0005;
+
+// ════════════════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════════
-let curSym='BTCUSDC', curTf='1m';
-let prices={}, prevPrices={};
-let ws, activeIndicators=new Set(['ma','vol']);
-let mainChart, candleSeries, subChart, subSeries={};
-let indSeries={};
-let chartData=[]; // current symbol full data
-let currentTool='cursor';
-let drawings=[], drawingInProgress=null;
-let activeTab='order';
+// ════════════════════════════════════════════════════════
+let curExchange='binance', curSym='BTCUSDC', curTfMin=1;
+let prices={}, prevPrices={}, changes={};
+let ws, mainChart, candleSeries, subChart, indSeries={}, subSeries={};
+let chartData=[], activeIndicators=new Set(['ma','vol']);
+let currentTool='cursor', drawings=[], drawingInProgress=null;
+let canvas, ctx, activeTab='order';
+let maSettings=[{period:7,color:'#f6c90e'},{period:25,color:'#2962ff'},{period:99,color:'#ff6d00'}];
+let modalExchange='binance';
 
-// MA settings
-let maSettings=[
-  {period:7,  color:'#f6c90e'},
-  {period:25, color:'#2962ff'},
-  {period:99, color:'#ff6d00'},
-];
-
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // CHART INIT
-// ═══════════════════════════════════════════════════════════
-function initCharts() {
-  const mWrap = document.getElementById('main-wrap');
-  mainChart = LightweightCharts.createChart(document.getElementById('main-chart'), {
+// ════════════════════════════════════════════════════════
+function initCharts(){
+  mainChart=LightweightCharts.createChart(document.getElementById('main-chart'),{
     layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
     grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
     crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
     timeScale:{timeVisible:true,secondsVisible:false,borderColor:'#30363d'},
     rightPriceScale:{borderColor:'#30363d'},
   });
-  candleSeries = mainChart.addCandlestickSeries({
-    upColor:'#3fb950',downColor:'#f85149',
-    borderUpColor:'#3fb950',borderDownColor:'#f85149',
-    wickUpColor:'#3fb950',wickDownColor:'#f85149',
-  });
-
-  // sub chart
-  subChart = LightweightCharts.createChart(document.getElementById('sub-chart'), {
+  candleSeries=mainChart.addCandlestickSeries({upColor:'#3fb950',downColor:'#f85149',borderUpColor:'#3fb950',borderDownColor:'#f85149',wickUpColor:'#3fb950',wickDownColor:'#f85149'});
+  subChart=LightweightCharts.createChart(document.getElementById('sub-chart'),{
     layout:{background:{color:'#0d1117'},textColor:'#8b949e'},
     grid:{vertLines:{color:'#21262d'},horzLines:{color:'#21262d'}},
     crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
     timeScale:{visible:false,borderColor:'#30363d'},
     rightPriceScale:{borderColor:'#30363d'},
-    leftPriceScale:{visible:false},
   });
-
-  // sync time scales
   let syncing=false;
-  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{
-    if(syncing||!r)return; syncing=true;
-    subChart.timeScale().setVisibleLogicalRange(r);
-    syncing=false; redrawCanvas();
-  });
-  subChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{
-    if(syncing||!r)return; syncing=true;
-    mainChart.timeScale().setVisibleLogicalRange(r);
-    syncing=false;
-  });
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{if(syncing||!r)return;syncing=true;subChart.timeScale().setVisibleLogicalRange(r);syncing=false;redrawCanvas();});
+  subChart.timeScale().subscribeVisibleLogicalRangeChange(r=>{if(syncing||!r)return;syncing=true;mainChart.timeScale().setVisibleLogicalRange(r);syncing=false;});
   mainChart.subscribeCrosshairMove(()=>redrawCanvas());
-
-  // resize
   new ResizeObserver(()=>{
     const mw=document.getElementById('main-wrap');
-    mainChart.resize(mw.clientWidth, mw.clientHeight);
+    mainChart.resize(mw.clientWidth,mw.clientHeight);
     const sw=document.getElementById('sub-wrap');
-    if(sw.style.display!=='none') subChart.resize(sw.clientWidth, sw.clientHeight);
+    if(sw.style.display!=='none') subChart.resize(sw.clientWidth,sw.clientHeight);
     resizeCanvas(); redrawCanvas();
   }).observe(document.getElementById('chart-area'));
 }
 
-// ═══════════════════════════════════════════════════════════
-// INDICATORS CALC
-// ═══════════════════════════════════════════════════════════
-function calcMA(data,period){
-  const r=[];
-  for(let i=period-1;i<data.length;i++){
-    let s=0; for(let j=0;j<period;j++) s+=data[i-j].close;
-    r.push({time:data[i].time,value:s/period});
-  }
-  return r;
-}
-function calcEMA(data,period){
-  if(data.length<period) return [];
-  const k=2/(period+1); const r=[];
-  let ema=0; for(let i=0;i<period;i++) ema+=data[i].close; ema/=period;
-  r.push({time:data[period-1].time,value:ema,close:ema});
-  for(let i=period;i<data.length;i++){
-    ema=data[i].close*k+ema*(1-k);
-    r.push({time:data[i].time,value:ema,close:ema});
-  }
-  return r;
-}
-function calcBOLL(data,period=20,mult=2){
-  const u=[],m=[],l=[];
-  for(let i=period-1;i<data.length;i++){
-    const sl=data.slice(i-period+1,i+1).map(x=>x.close);
-    const mean=sl.reduce((a,b)=>a+b,0)/period;
-    const std=Math.sqrt(sl.reduce((a,b)=>a+(b-mean)**2,0)/period);
-    u.push({time:data[i].time,value:mean+mult*std});
-    m.push({time:data[i].time,value:mean});
-    l.push({time:data[i].time,value:mean-mult*std});
-  }
-  return {u,m,l};
-}
-function calcRSI(data,period=14){
-  if(data.length<period+1) return [];
-  const r=[]; let ag=0,al=0;
-  for(let i=1;i<=period;i++){const d=data[i].close-data[i-1].close; d>0?ag+=d:al-=d;}
-  ag/=period; al/=period;
-  r.push({time:data[period].time,value:al===0?100:100-100/(1+ag/al)});
-  for(let i=period+1;i<data.length;i++){
-    const d=data[i].close-data[i-1].close;
-    ag=(ag*(period-1)+Math.max(0,d))/period;
-    al=(al*(period-1)+Math.max(0,-d))/period;
-    r.push({time:data[i].time,value:al===0?100:100-100/(1+ag/al)});
-  }
-  return r;
-}
-function calcMACD(data,fast=12,slow=26,sig=9){
-  const ef=calcEMA(data,fast), es=calcEMA(data,slow);
-  const off=slow-fast;
-  const macd=ef.slice(off).map((d,i)=>({time:d.time,value:d.value-es[i].value,close:d.value-es[i].value}));
-  const signal=calcEMA(macd,sig);
-  const sm={}; signal.forEach(d=>sm[d.time]=d.value);
-  const hist=macd.slice(sig-1).map((d,i)=>({time:d.time,value:d.value-(sm[d.time]||0)}));
-  return {macd,signal,hist};
-}
-function calcKDJ(data,period=9){
-  const K=[],D=[],J=[]; let k=50,d=50;
-  for(let i=period-1;i<data.length;i++){
-    const sl=data.slice(i-period+1,i+1);
-    const hi=Math.max(...sl.map(x=>x.high)), lo=Math.min(...sl.map(x=>x.low));
-    const rsv=hi===lo?50:(data[i].close-lo)/(hi-lo)*100;
-    k=k*2/3+rsv/3; d=d*2/3+k/3; const j=3*k-2*d;
-    K.push({time:data[i].time,value:k});
-    D.push({time:data[i].time,value:d});
-    J.push({time:data[i].time,value:j});
-  }
-  return {K,D,J};
-}
-function calcWR(data,period=14){
-  const r=[];
-  for(let i=period-1;i<data.length;i++){
-    const sl=data.slice(i-period+1,i+1);
-    const hi=Math.max(...sl.map(x=>x.high)), lo=Math.min(...sl.map(x=>x.low));
-    const wr=hi===lo?-50:-(hi-data[i].close)/(hi-lo)*100;
-    r.push({time:data[i].time,value:wr});
-  }
-  return r;
-}
+// ════════════════════════════════════════════════════════
+// INDICATOR CALC
+// ════════════════════════════════════════════════════════
+function calcMA(data,p){const r=[];for(let i=p-1;i<data.length;i++){let s=0;for(let j=0;j<p;j++)s+=data[i-j].close;r.push({time:data[i].time,value:s/p});}return r;}
+function calcEMA(data,p){if(data.length<p)return[];const k=2/(p+1);let ema=0;for(let i=0;i<p;i++)ema+=data[i].close;ema/=p;const r=[{time:data[p-1].time,value:ema,close:ema}];for(let i=p;i<data.length;i++){ema=data[i].close*k+ema*(1-k);r.push({time:data[i].time,value:ema,close:ema});}return r;}
+function calcBOLL(data,p=20,m=2){const u=[],mid=[],l=[];for(let i=p-1;i<data.length;i++){const sl=data.slice(i-p+1,i+1).map(x=>x.close),mean=sl.reduce((a,b)=>a+b,0)/p,std=Math.sqrt(sl.reduce((a,b)=>a+(b-mean)**2,0)/p);u.push({time:data[i].time,value:mean+m*std});mid.push({time:data[i].time,value:mean});l.push({time:data[i].time,value:mean-m*std});}return{u,mid,l};}
+function calcRSI(data,p=14){if(data.length<p+1)return[];let ag=0,al=0;for(let i=1;i<=p;i++){const d=data[i].close-data[i-1].close;d>0?ag+=d:al-=d;}ag/=p;al/=p;const r=[{time:data[p].time,value:al===0?100:100-100/(1+ag/al)}];for(let i=p+1;i<data.length;i++){const d=data[i].close-data[i-1].close;ag=(ag*(p-1)+Math.max(0,d))/p;al=(al*(p-1)+Math.max(0,-d))/p;r.push({time:data[i].time,value:al===0?100:100-100/(1+ag/al)});}return r;}
+function calcMACD(data,fast=12,slow=26,sig=9){const ef=calcEMA(data,fast),es=calcEMA(data,slow),off=slow-fast;const macd=ef.slice(off).map((d,i)=>({time:d.time,value:d.value-es[i].value,close:d.value-es[i].value}));const signal=calcEMA(macd,sig);const sm={};signal.forEach(d=>sm[d.time]=d.value);const hist=macd.slice(sig-1).map(d=>({time:d.time,value:d.value-(sm[d.time]||0)}));return{macd,signal,hist};}
+function calcKDJ(data,p=9){const K=[],D=[],J=[];let k=50,d=50;for(let i=p-1;i<data.length;i++){const sl=data.slice(i-p+1,i+1),hi=Math.max(...sl.map(x=>x.high)),lo=Math.min(...sl.map(x=>x.low));const rsv=hi===lo?50:(data[i].close-lo)/(hi-lo)*100;k=k*2/3+rsv/3;d=d*2/3+k/3;K.push({time:data[i].time,value:k});D.push({time:data[i].time,value:d});J.push({time:data[i].time,value:3*k-2*d});}return{K,D,J};}
+function calcWR(data,p=14){const r=[];for(let i=p-1;i<data.length;i++){const sl=data.slice(i-p+1,i+1),hi=Math.max(...sl.map(x=>x.high)),lo=Math.min(...sl.map(x=>x.low));r.push({time:data[i].time,value:hi===lo?-50:-(hi-data[i].close)/(hi-lo)*100});}return r;}
 
-// ═══════════════════════════════════════════════════════════
-// INDICATOR RENDERING
-// ═══════════════════════════════════════════════════════════
 function clearIndSeries(){
-  Object.values(indSeries).flat().forEach(s=>{ try{mainChart.removeSeries(s)}catch{} });
-  Object.values(subSeries).flat().forEach(s=>{ try{subChart.removeSeries(s)}catch{} });
-  indSeries={}; subSeries={};
+  Object.values(indSeries).flat().forEach(s=>{try{mainChart.removeSeries(s)}catch{}});
+  Object.values(subSeries).flat().forEach(s=>{try{subChart.removeSeries(s)}catch{}});
+  indSeries={};subSeries={};
 }
-
 function renderIndicators(data){
-  clearIndSeries();
-  if(!data.length) return;
-
-  if(activeIndicators.has('ma')){
-    indSeries.ma = maSettings.map(cfg=>{
-      const s=mainChart.addLineSeries({color:cfg.color,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      s.setData(calcMA(data,cfg.period));
-      return s;
-    });
-  }
-
-  if(activeIndicators.has('ema')){
-    indSeries.ema=[];
-    [[12,'#9c27b0'],[26,'#ff9800']].forEach(([p,c])=>{
-      const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      s.setData(calcEMA(data,p)); indSeries.ema.push(s);
-    });
-  }
-
-  if(activeIndicators.has('boll')){
-    const b=calcBOLL(data);
-    indSeries.boll=[];
-    [{d:b.u,c:'#ff5722'},{d:b.m,c:'#9c27b0'},{d:b.l,c:'#2196f3'}].forEach(({d,c})=>{
-      const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      s.setData(d); indSeries.boll.push(s);
-    });
-  }
-
-  if(activeIndicators.has('vol')){
-    const volData=data.map(d=>({time:d.time,value:d.volume||1,color:d.close>=d.open?'#3fb95066':'#f8514966'}));
-    const vs=mainChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol',lastValueVisible:false});
-    vs.priceScale().applyOptions({scaleMargins:{top:0.85,bottom:0}});
-    vs.setData(volData);
-    indSeries.vol=[vs];
-  }
-
-  // SUB CHART indicators
-  const showSub = activeIndicators.has('rsi')||activeIndicators.has('macd')||activeIndicators.has('kdj')||activeIndicators.has('wr');
-  const subWrap=document.getElementById('sub-wrap');
+  clearIndSeries();if(!data.length)return;
+  if(activeIndicators.has('ma')){indSeries.ma=maSettings.map(cfg=>{const s=mainChart.addLineSeries({color:cfg.color,lineWidth:1,priceLineVisible:false,lastValueVisible:false});s.setData(calcMA(data,cfg.period));return s;});}
+  if(activeIndicators.has('ema')){indSeries.ema=[[12,'#9c27b0'],[26,'#ff9800']].map(([p,c])=>{const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});s.setData(calcEMA(data,p));return s;});}
+  if(activeIndicators.has('boll')){const b=calcBOLL(data);indSeries.boll=[{d:b.u,c:'#ff5722'},{d:b.mid,c:'#9c27b0'},{d:b.l,c:'#2196f3'}].map(({d,c})=>{const s=mainChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});s.setData(d);return s;});}
+  if(activeIndicators.has('vol')){const vs=mainChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol',lastValueVisible:false});vs.priceScale().applyOptions({scaleMargins:{top:0.85,bottom:0}});vs.setData(data.map(d=>({time:d.time,value:d.volume||1,color:d.close>=d.open?'#3fb95055':'#f8514955'})));indSeries.vol=[vs];}
+  const subGroup=['rsi','macd','kdj','wr'], showSub=subGroup.some(id=>activeIndicators.has(id));
+  const sw=document.getElementById('sub-wrap');
   if(showSub){
-    subWrap.style.display='';
-    // pick first active sub indicator
-    if(activeIndicators.has('rsi')){
-      document.getElementById('subLabel').textContent='RSI(14)';
-      const rs=calcRSI(data);
-      const s=subChart.addLineSeries({color:'#e040fb',lineWidth:1,priceLineVisible:false,lastValueVisible:true});
-      s.setData(rs); subSeries.rsi=[s];
-      // overbought/oversold lines
-      [70,30].forEach(v=>{
-        s.createPriceLine({price:v,color:'#8b949e',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true,title:v===70?'OB':'OS'});
-      });
-    } else if(activeIndicators.has('macd')){
-      document.getElementById('subLabel').textContent='MACD(12,26,9)';
-      const mc=calcMACD(data);
-      const ms=subChart.addLineSeries({color:'#2196f3',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      ms.setData(mc.macd);
-      const ss=subChart.addLineSeries({color:'#ff9800',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      ss.setData(mc.signal);
-      const hs=subChart.addHistogramSeries({color:'#3fb950',priceLineVisible:false,lastValueVisible:false});
-      hs.setData(mc.hist.map(d=>({...d,color:d.value>=0?'#3fb95088':'#f8514988'})));
-      subSeries.macd=[ms,ss,hs];
-    } else if(activeIndicators.has('kdj')){
-      document.getElementById('subLabel').textContent='KDJ(9)';
-      const kd=calcKDJ(data);
-      [[kd.K,'#f6c90e'],[kd.D,'#2196f3'],[kd.J,'#ff5722']].forEach(([d,c])=>{
-        const s=subChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-        s.setData(d); (subSeries.kdj=subSeries.kdj||[]).push(s);
-      });
-    } else if(activeIndicators.has('wr')){
-      document.getElementById('subLabel').textContent='WR(14)';
-      const wr=calcWR(data);
-      const s=subChart.addLineSeries({color:'#00bcd4',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
-      s.setData(wr); subSeries.wr=[s];
-      [-20,-80].forEach(v=>s.createPriceLine({price:v,color:'#8b949e',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true}));
-    }
-    setTimeout(()=>{ const sw=document.getElementById('sub-wrap'); subChart.resize(sw.clientWidth,sw.clientHeight); },50);
-  } else {
-    subWrap.style.display='none';
-  }
+    sw.style.display='';
+    if(activeIndicators.has('rsi')){document.getElementById('subLabel').textContent='RSI(14)';const s=subChart.addLineSeries({color:'#e040fb',lineWidth:1,priceLineVisible:false});s.setData(calcRSI(data));[70,30].forEach(v=>s.createPriceLine({price:v,color:'#484f58',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true}));subSeries.rsi=[s];}
+    else if(activeIndicators.has('macd')){document.getElementById('subLabel').textContent='MACD(12,26,9)';const mc=calcMACD(data);const ms=subChart.addLineSeries({color:'#2196f3',lineWidth:1,priceLineVisible:false,lastValueVisible:false});ms.setData(mc.macd);const ss=subChart.addLineSeries({color:'#ff9800',lineWidth:1,priceLineVisible:false,lastValueVisible:false});ss.setData(mc.signal);const hs=subChart.addHistogramSeries({priceLineVisible:false,lastValueVisible:false});hs.setData(mc.hist.map(d=>({...d,color:d.value>=0?'#3fb95088':'#f8514988'})));subSeries.macd=[ms,ss,hs];}
+    else if(activeIndicators.has('kdj')){document.getElementById('subLabel').textContent='KDJ(9)';const kd=calcKDJ(data);[[kd.K,'#f6c90e'],[kd.D,'#2196f3'],[kd.J,'#ff5722']].forEach(([d,c])=>{const s=subChart.addLineSeries({color:c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});s.setData(d);(subSeries.kdj=subSeries.kdj||[]).push(s);});}
+    else if(activeIndicators.has('wr')){document.getElementById('subLabel').textContent='WR(14)';const s=subChart.addLineSeries({color:'#00bcd4',lineWidth:1,priceLineVisible:false,lastValueVisible:false});s.setData(calcWR(data));[-20,-80].forEach(v=>s.createPriceLine({price:v,color:'#484f58',lineWidth:1,lineStyle:LightweightCharts.LineStyle.Dashed,axisLabelVisible:true}));subSeries.wr=[s];}
+    setTimeout(()=>{const s=document.getElementById('sub-wrap');subChart.resize(s.clientWidth,s.clientHeight);},50);
+  } else {sw.style.display='none';}
 }
-
 function toggleIndicator(id){
-  // rsi/macd/kdj/wr are mutually exclusive in sub-chart
-  const subGroup=['rsi','macd','kdj','wr'];
-  if(subGroup.includes(id)){
-    if(activeIndicators.has(id)){
-      activeIndicators.delete(id);
-    } else {
-      subGroup.forEach(x=>activeIndicators.delete(x));
-      activeIndicators.add(id);
-    }
-  } else {
-    activeIndicators.has(id)?activeIndicators.delete(id):activeIndicators.add(id);
-  }
+  const sub=['rsi','macd','kdj','wr'];
+  if(sub.includes(id)){if(activeIndicators.has(id)){activeIndicators.delete(id);}else{sub.forEach(x=>activeIndicators.delete(x));activeIndicators.add(id);}}
+  else{activeIndicators.has(id)?activeIndicators.delete(id):activeIndicators.add(id);}
   buildCtrlBar();
-  if(id==='ma') { document.getElementById('ma-popup').style.display='block'; return; }
+  if(id==='ma'&&activeIndicators.has('ma')){document.getElementById('ma-popup').style.display='block';return;}
   renderIndicators(chartData);
 }
+function applyMA(){maSettings=[{period:+document.getElementById('ma1p').value,color:document.getElementById('ma1c').value},{period:+document.getElementById('ma2p').value,color:document.getElementById('ma2c').value},{period:+document.getElementById('ma3p').value,color:document.getElementById('ma3c').value}];document.getElementById('ma-popup').style.display='none';renderIndicators(chartData);}
 
-// MA popup
-function applyMA(){
-  maSettings=[
-    {period:+document.getElementById('ma1p').value,color:document.getElementById('ma1c').value},
-    {period:+document.getElementById('ma2p').value,color:document.getElementById('ma2c').value},
-    {period:+document.getElementById('ma3p').value,color:document.getElementById('ma3c').value},
-  ];
-  closeMAPopup(); renderIndicators(chartData);
+// ════════════════════════════════════════════════════════
+// KLINE LOAD
+// ════════════════════════════════════════════════════════
+function getStartMs(tfMin){
+  const DAY=86400000,now=Date.now();
+  const map={1:7,3:21,5:30,15:90,30:180,60:365,120:365,240:365,480:365};
+  const days=map[tfMin];
+  return days?now-days*DAY:1498867200000;
 }
-function closeMAPopup(){ document.getElementById('ma-popup').style.display='none'; }
-
-// ═══════════════════════════════════════════════════════════
-// KLINES LOAD
-// ═══════════════════════════════════════════════════════════
-function getStartTime(iv){
-  const DAY=86400000, now=Date.now();
-  const map={'1m':7,'3m':21,'5m':30,'15m':90,'30m':180,'1h':365,'2h':365,'4h':365,'8h':365};
-  const days=map[iv]; if(!days) return 1498867200000;
-  return now-days*DAY;
-}
-async function loadKlines(sym,iv){
-  const ov=document.getElementById('loadingOverlay');
-  ov.textContent='加载K线...'; ov.style.display='flex';
-  const all=[];
-  let start=getStartTime(iv), batchCount=0;
+async function loadKlines(sym,tfMin){
+  const ov=document.getElementById('ov');ov.textContent='加载K线...';ov.style.display='flex';
+  const ex=EXCHANGES[curExchange];
+  const iv=ex.tfMap[tfMin];
+  const all=[];let start=getStartMs(tfMin),batch=0;
   try{
     while(start<Date.now()){
-      const url=`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&startTime=${start}&limit=1000`;
-      const res=await fetch(url); if(!res.ok) break;
-      const raw=await res.json(); if(!raw.length) break;
-      for(const k of raw) all.push({time:Math.floor(k[0]/1000),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]});
-      const last=raw[raw.length-1]; start=last[6]+1; batchCount++;
-      ov.textContent=`加载中... ${all.length} 根`;
-      if(raw.length<1000) break;
-      if(batchCount%5===0) await sleep(300);
+      const chunk=await ex.getKlines(sym,iv,start);
+      if(!chunk||!chunk.length) break;
+      all.push(...chunk);
+      const last=chunk[chunk.length-1];
+      start=(last.closeMs||last.time*1000+tfMin*60000)+1;
+      batch++;ov.textContent=`加载中... ${all.length} 根`;
+      if(chunk.length<(curExchange==='okx'?300:1000)) break;
+      if(batch%5===0) await sleep(200);
     }
     const seen=new Set();
     chartData=all.filter(c=>{if(seen.has(c.time))return false;seen.add(c.time);return true}).sort((a,b)=>a.time-b.time);
     candleSeries.setData(chartData);
     mainChart.timeScale().fitContent();
-    if(chartData.length){ prices[sym]=chartData[chartData.length-1].close; updatePriceDisplay(sym,prices[sym]); }
+    if(chartData.length){const last=chartData[chartData.length-1];prices[sym]=last.close;updatePriceDisplay(sym,last.close,changes[sym]||0);}
     renderIndicators(chartData);
     ov.textContent=`✓ ${chartData.length}根`;
-    setTimeout(()=>ov.style.display='none',700);
-  } catch(e){ console.error(e); ov.textContent='加载失败'; setTimeout(()=>ov.style.display='none',2000); }
+    setTimeout(()=>ov.style.display='none',600);
+  } catch(e){console.error(e);ov.textContent='加载失败，刷新重试';setTimeout(()=>ov.style.display='none',2000);}
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // WEBSOCKET
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+function getAllSyms(){return Object.values(EXCHANGES[curExchange].categories).flat();}
 function connectWS(){
   if(ws){ws.onclose=null;ws.close();}
-  const sl=curSym.toLowerCase();
-  const streams=[...SYMBOLS.map(s=>`${s.toLowerCase()}@ticker`),`${sl}@kline_${curTf}`].join('/');
-  ws=new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
-  ws.onopen=()=>document.getElementById('wsDot').className='ws-dot on';
+  const ex=EXCHANGES[curExchange];
+  const syms=[curSym,...getAllSyms().filter(s=>s!==curSym).slice(0,19)];
+  const tf=ex.tfMap[curTfMin];
+  const url=ex.buildWS(syms,tf);
+  ws=new WebSocket(url);
+  ws.onopen=()=>{
+    document.getElementById('wsDot').className='ws-dot on';
+    if(ex.wsOnOpen) ex.wsOnOpen(ws,syms,tf);
+  };
   ws.onclose=()=>{document.getElementById('wsDot').className='ws-dot';setTimeout(connectWS,2000);};
   ws.onerror=()=>ws.close();
   ws.onmessage=(e)=>{
-    const msg=JSON.parse(e.data), d=msg.data||{}, stream=msg.stream||'';
-    if(stream.includes('@ticker')){
-      const sym=d.s, price=+d.c;
-      prevPrices[sym]=prices[sym]; prices[sym]=price;
-      checkOrders(sym,price,price,price);
-      if(sym===curSym) updatePriceDisplay(sym,price);
+    let parsed;
+    try{
+      const raw=JSON.parse(e.data);
+      const stream=raw.stream||'';
+      const data=raw.data||raw;
+      parsed=ex.parseWS(data,stream);
+    }catch{return;}
+    if(!parsed) return;
+    if(parsed.type==='ticker'){
+      prevPrices[parsed.sym]=prices[parsed.sym];
+      prices[parsed.sym]=parsed.price;
+      changes[parsed.sym]=parsed.chg||0;
+      checkOrders(parsed.sym,parsed.price,parsed.price,parsed.price);
+      if(parsed.sym===curSym) updatePriceDisplay(parsed.sym,parsed.price,parsed.chg||0);
+      // update price in sym picker if open
+      const el=document.getElementById('sp_'+parsed.sym);
+      if(el){el.querySelector('.sprice').textContent='$'+parsed.price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});const c=parsed.chg||0;el.querySelector('.schg').textContent=(c>=0?'+':'')+c.toFixed(2)+'%';el.querySelector('.schg').style.color=c>=0?'var(--gn)':'var(--rd)';}
     }
-    if(stream.includes('@kline')){
-      const k=d.k;
-      const candle={time:Math.floor(k.t/1000),open:+k.o,high:+k.h,low:+k.l,close:+k.c,volume:+k.v};
-      if(k.s===curSym&&k.i===curTf){
-        candleSeries.update(candle);
-        // update last candle in chartData for live indicator update
-        if(chartData.length&&chartData[chartData.length-1].time===candle.time){
-          chartData[chartData.length-1]=candle;
-        } else if(candle.time>(chartData[chartData.length-1]||{}).time){
-          chartData.push(candle);
-        }
-        checkOrders(k.s,+k.c,+k.h,+k.l);
-      }
+    if(parsed.type==='kline'&&parsed.sym===curSym){
+      const candle={time:parsed.time,open:parsed.open,high:parsed.high,low:parsed.low,close:parsed.close,volume:parsed.volume};
+      candleSeries.update(candle);
+      if(chartData.length&&chartData[chartData.length-1].time===candle.time) chartData[chartData.length-1]=candle;
+      else if(candle.time>(chartData[chartData.length-1]||{}).time) chartData.push(candle);
+      checkOrders(parsed.sym,parsed.close,parsed.high,parsed.low);
     }
   };
 }
-function updatePriceDisplay(sym,price){
-  const prev=prevPrices[sym], el=document.getElementById('livePrice');
+function updatePriceDisplay(sym,price,chg){
+  const prev=prevPrices[sym],el=document.getElementById('livePrice');
   el.textContent='$'+price.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2});
   el.className='live-price'+(prev&&price>prev?' up':prev&&price<prev?' down':'');
-  document.getElementById('subInfo').textContent=sym+' · 实时';
+  const chgEl=document.getElementById('chgInfo');
+  const c=chg||0;
+  chgEl.innerHTML=`${sym} &nbsp;<span style="color:${c>=0?'var(--gn)':'var(--rd)'}">${c>=0?'+':''}${c.toFixed(2)}%</span>`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// DRAWING TOOLS (Canvas overlay)
-// ═══════════════════════════════════════════════════════════
-let canvas, ctx;
-function initCanvas(){
-  canvas=document.getElementById('draw-canvas');
-  ctx=canvas.getContext('2d');
-  resizeCanvas();
+// ════════════════════════════════════════════════════════
+// SYMBOL PICKER MODAL
+// ════════════════════════════════════════════════════════
+function openSymModal(){
+  modalExchange=curExchange;
+  document.getElementById('sym-modal').style.display='flex';
+  buildModalExTabs();
+  renderSymList('');
+}
+function closeSymModal(){document.getElementById('sym-modal').style.display='none';}
+document.getElementById('sym-modal').addEventListener('click',function(e){if(e.target===this)closeSymModal();});
 
-  // mouse events
-  canvas.addEventListener('mousedown', e=>onDown(e.offsetX,e.offsetY));
-  canvas.addEventListener('mousemove', e=>onMove(e.offsetX,e.offsetY));
-  canvas.addEventListener('mouseup',   e=>onUp(e.offsetX,e.offsetY));
-  // touch events
+function buildModalExTabs(){
+  document.getElementById('symModalEx').innerHTML=Object.entries(EXCHANGES).map(([id,ex])=>
+    `<button class="sex-tab${id===modalExchange?' active':''}" onclick="switchModalEx('${id}')">${ex.name}</button>`
+  ).join('');
+}
+function switchModalEx(id){
+  modalExchange=id;
+  buildModalExTabs();
+  renderSymList(document.getElementById('symSearch').value);
+}
+function filterSymbols(){renderSymList(document.getElementById('symSearch').value);}
+function renderSymList(q){
+  const ex=EXCHANGES[modalExchange];
+  const query=q.toLowerCase().trim();
+  let html='';
+  for(const[cat,syms] of Object.entries(ex.categories)){
+    const filtered=syms.filter(s=>!query||s.toLowerCase().includes(query));
+    if(!filtered.length) continue;
+    html+=`<div class="cat-title">${cat}</div><div class="sym-grid">`;
+    for(const sym of filtered){
+      const p=prices[sym],chg=changes[sym]||0;
+      const isActive=sym===curSym&&modalExchange===curExchange;
+      html+=`<div class="sym-item${isActive?' active':''}" id="sp_${sym}" onclick="selectSym('${sym}','${modalExchange}')">
+        <div class="sname">${ex.fmtDisplay(sym)}</div>
+        <div class="sprice">${p?'$'+p.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}):'--'}</div>
+        <div class="schg" style="color:${chg>=0?'var(--gn)':'var(--rd)'}">${p?(chg>=0?'+':'')+chg.toFixed(2)+'%':''}</div>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  document.getElementById('symList').innerHTML=html||'<div class="empty">未找到交易对</div>';
+}
+async function selectSym(sym,exId){
+  if(exId!==curExchange){
+    curExchange=exId;
+    document.querySelectorAll('.ex-tab').forEach((el,i)=>{el.classList.toggle('active',['binance','okx','bybit'][i]===exId);});
+  }
+  curSym=sym;
+  document.getElementById('symBtnText').textContent=EXCHANGES[curExchange].fmtDisplay(sym);
+  closeSymModal();
+  await loadKlines(sym,curTfMin);
+  connectWS();
+}
+
+// ════════════════════════════════════════════════════════
+// EXCHANGE / TF SWITCH
+// ════════════════════════════════════════════════════════
+async function setExchange(id){
+  if(id===curExchange) return;
+  curExchange=id;
+  document.querySelectorAll('.ex-tab').forEach((el,i)=>el.classList.toggle('active',['binance','okx','bybit'][i]===id));
+  // pick first symbol of new exchange
+  const cats=EXCHANGES[id].categories;
+  curSym=Object.values(cats)[0][0];
+  document.getElementById('symBtnText').textContent=EXCHANGES[id].fmtDisplay(curSym);
+  buildCtrlBar();
+  await loadKlines(curSym,curTfMin);
+  connectWS();
+}
+function buildCtrlBar(){
+  document.getElementById('ctrlBar').innerHTML=
+    TIMEFRAMES.map(tf=>`<button class="tf-btn${tf.m===curTfMin?' active':''}" onclick="switchTf(${tf.m})">${tf.l}</button>`).join('')+
+    '<div class="sep"></div>'+
+    INDICATORS.map(ind=>`<button class="ind-btn${activeIndicators.has(ind.id)?' active':''}" onclick="toggleIndicator('${ind.id}')">${ind.label}</button>`).join('');
+}
+async function switchTf(min){
+  curTfMin=min;buildCtrlBar();
+  mainChart.applyOptions({timeScale:{secondsVisible:min===1}});
+  await loadKlines(curSym,min);connectWS();
+}
+
+// ════════════════════════════════════════════════════════
+// DRAWING TOOLS
+// ════════════════════════════════════════════════════════
+function initCanvas(){
+  canvas=document.getElementById('draw-canvas');ctx=canvas.getContext('2d');resizeCanvas();
+  canvas.addEventListener('mousedown',e=>onDown(e.offsetX,e.offsetY));
+  canvas.addEventListener('mousemove',e=>onMove(e.offsetX,e.offsetY));
+  canvas.addEventListener('mouseup',  e=>onUp(e.offsetX,e.offsetY));
   canvas.addEventListener('touchstart',e=>{const t=e.touches[0],r=canvas.getBoundingClientRect();onDown(t.clientX-r.left,t.clientY-r.top);e.preventDefault();},{passive:false});
   canvas.addEventListener('touchmove', e=>{const t=e.touches[0],r=canvas.getBoundingClientRect();onMove(t.clientX-r.left,t.clientY-r.top);e.preventDefault();},{passive:false});
   canvas.addEventListener('touchend',  e=>{const t=e.changedTouches[0],r=canvas.getBoundingClientRect();onUp(t.clientX-r.left,t.clientY-r.top);},{passive:false});
 }
-function resizeCanvas(){
-  const w=document.getElementById('main-wrap');
-  canvas.width=w.clientWidth; canvas.height=w.clientHeight;
-}
+function resizeCanvas(){const w=document.getElementById('main-wrap');canvas.width=w.clientWidth;canvas.height=w.clientHeight;}
 function setTool(btn){
-  currentTool=btn.dataset.tool; drawingInProgress=null;
+  currentTool=btn.dataset.tool;drawingInProgress=null;
   document.querySelectorAll('.dtool[data-tool]').forEach(b=>b.classList.toggle('active',b===btn));
   canvas.style.pointerEvents=currentTool==='cursor'?'none':'auto';
   canvas.style.cursor=currentTool==='cursor'?'default':'crosshair';
 }
-function getChartCoord(px,py){
-  const price=candleSeries.coordinateToPrice(py);
-  const time=mainChart.timeScale().coordinateToTime(px);
-  return {px,py,price,time};
-}
-function toScreen(time,price){
-  const x=mainChart.timeScale().timeToCoordinate(time);
-  const y=candleSeries.priceToCoordinate(price);
-  return {x,y};
-}
+function gc(px,py){return{px,py,price:candleSeries.coordinateToPrice(py),time:mainChart.timeScale().coordinateToTime(px)};}
+function ts(time,price){return{x:mainChart.timeScale().timeToCoordinate(time),y:candleSeries.priceToCoordinate(price)};}
 function onDown(px,py){
-  const coord=getChartCoord(px,py);
-  if(currentTool==='hline'){
-    drawings.push({type:'hline',price:coord.price}); redrawCanvas(); return;
-  }
-  if(currentTool==='vline'){
-    drawings.push({type:'vline',time:coord.time,px}); redrawCanvas(); return;
-  }
+  const c=gc(px,py);
+  if(currentTool==='hline'){drawings.push({type:'hline',price:c.price});redrawCanvas();return;}
+  if(currentTool==='vline'){drawings.push({type:'vline',time:c.time});redrawCanvas();return;}
   if(['trend','ray','fib','rect','hray'].includes(currentTool)){
-    if(!drawingInProgress){
-      drawingInProgress={type:currentTool,start:coord,end:coord};
-    }
+    if(!drawingInProgress) drawingInProgress={type:currentTool,start:c,end:c};
   }
 }
-function onMove(px,py){
-  if(!drawingInProgress) return;
-  drawingInProgress.end=getChartCoord(px,py);
-  redrawCanvas();
-}
-function onUp(px,py){
-  if(!drawingInProgress) return;
-  drawingInProgress.end=getChartCoord(px,py);
-  drawings.push({...drawingInProgress}); drawingInProgress=null; redrawCanvas();
-}
-function undoDrawing(){ drawings.pop(); redrawCanvas(); }
-function clearDrawings(){ drawings=[]; drawingInProgress=null; redrawCanvas(); }
+function onMove(px,py){if(!drawingInProgress)return;drawingInProgress.end=gc(px,py);redrawCanvas();}
+function onUp(px,py){if(!drawingInProgress)return;drawingInProgress.end=gc(px,py);drawings.push({...drawingInProgress});drawingInProgress=null;redrawCanvas();}
+function undoDrawing(){drawings.pop();redrawCanvas();}
+function clearDrawings(){drawings=[];drawingInProgress=null;redrawCanvas();}
 
-const FIB_LEVELS=[0,0.236,0.382,0.5,0.618,0.786,1];
-const FIB_COLORS=['#f6c90e','#2196f3','#4caf50','#ff9800','#e91e63','#9c27b0','#f6c90e'];
-
+const FIB=[0,0.236,0.382,0.5,0.618,0.786,1],FIBC=['#f6c90e','#2196f3','#4caf50','#ff9800','#e91e63','#9c27b0','#f6c90e'];
 function redrawCanvas(){
-  if(!ctx) return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.lineWidth=1.5;
-
-  const all=[...drawings, drawingInProgress].filter(Boolean);
-  for(const d of all){
-    ctx.strokeStyle='#58a6ff'; ctx.fillStyle='#58a6ff88';
-    ctx.setLineDash([]);
-    if(d.type==='hline'){
-      const y=candleSeries.priceToCoordinate(d.price);
-      if(y==null) continue;
-      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y);
-      ctx.stroke();
-      ctx.fillStyle='#58a6ff'; ctx.font='10px Segoe UI';
-      ctx.fillText(d.price?.toFixed(2),4,y-3);
-    }
-    else if(d.type==='vline'){
-      const x=mainChart.timeScale().timeToCoordinate(d.time);
-      if(x==null) continue;
-      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
-    }
-    else if(d.type==='hray'){
-      const y=candleSeries.priceToCoordinate(d.start.price);
-      const x=mainChart.timeScale().timeToCoordinate(d.start.time);
-      if(y==null||x==null) continue;
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(canvas.width,y); ctx.stroke();
-    }
-    else if(d.type==='trend'||d.type==='ray'){
-      const s=toScreen(d.start.time,d.start.price);
-      const e=toScreen(d.end.time,d.end.price);
-      if(s.x==null||e.x==null) continue;
-      ctx.beginPath(); ctx.moveTo(s.x,s.y);
-      if(d.type==='ray'){
-        // extend to edge
-        const dx=e.x-s.x, dy=e.y-s.y;
-        const t=(canvas.width-s.x)/dx;
-        ctx.lineTo(s.x+dx*t, s.y+dy*t);
-      } else { ctx.lineTo(e.x,e.y); }
-      ctx.stroke();
-      // dots
-      ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(e.x,e.y,3,0,Math.PI*2); ctx.fill();
-    }
-    else if(d.type==='rect'){
-      const s=toScreen(d.start.time,d.start.price);
-      const e=toScreen(d.end.time,d.end.price);
-      if(s.x==null||e.x==null) continue;
-      ctx.fillStyle='#58a6ff15';
-      ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);
-      ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y);
-    }
-    else if(d.type==='fib'){
-      const minP=Math.min(d.start.price,d.end.price);
-      const maxP=Math.max(d.start.price,d.end.price);
-      const sx=Math.min(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time));
-      const ex=Math.max(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time));
-      if(sx==null||ex==null) continue;
-      FIB_LEVELS.forEach((lvl,i)=>{
-        const price=maxP-(maxP-minP)*lvl;
-        const y=candleSeries.priceToCoordinate(price);
-        if(y==null) return;
-        ctx.strokeStyle=FIB_COLORS[i]; ctx.setLineDash([4,3]);
-        ctx.beginPath(); ctx.moveTo(sx,y); ctx.lineTo(ex,y); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle=FIB_COLORS[i]; ctx.font='10px Segoe UI';
-        ctx.fillText(`${(lvl*100).toFixed(1)}%  ${price.toFixed(2)}`,ex+4,y+4);
-      });
-    }
+  if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.lineWidth=1.5;
+  for(const d of [...drawings,drawingInProgress].filter(Boolean)){
+    ctx.strokeStyle='#58a6ff';ctx.fillStyle='#58a6ff88';ctx.setLineDash([]);
+    if(d.type==='hline'){const y=candleSeries.priceToCoordinate(d.price);if(y==null)continue;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();ctx.fillStyle='#58a6ff';ctx.font='10px Segoe UI';ctx.fillText(d.price?.toFixed(2),4,y-3);}
+    else if(d.type==='vline'){const x=mainChart.timeScale().timeToCoordinate(d.time);if(x==null)continue;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+    else if(d.type==='hray'){const y=candleSeries.priceToCoordinate(d.start.price),x=mainChart.timeScale().timeToCoordinate(d.start.time);if(y==null||x==null)continue;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+    else if(d.type==='trend'||d.type==='ray'){const s=ts(d.start.time,d.start.price),e=ts(d.end.time,d.end.price);if(s.x==null||e.x==null)continue;ctx.beginPath();ctx.moveTo(s.x,s.y);if(d.type==='ray'){const dx=e.x-s.x,dy=e.y-s.y,t=(canvas.width-s.x)/(dx||1);ctx.lineTo(s.x+dx*t,s.y+dy*t);}else ctx.lineTo(e.x,e.y);ctx.stroke();[s,e].forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();});}
+    else if(d.type==='rect'){const s=ts(d.start.time,d.start.price),e=ts(d.end.time,d.end.price);if(s.x==null||e.x==null)continue;ctx.fillStyle='#58a6ff15';ctx.fillRect(s.x,s.y,e.x-s.x,e.y-s.y);ctx.strokeRect(s.x,s.y,e.x-s.x,e.y-s.y);}
+    else if(d.type==='fib'){const minP=Math.min(d.start.price,d.end.price),maxP=Math.max(d.start.price,d.end.price),x1=Math.min(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time)),x2=Math.max(mainChart.timeScale().timeToCoordinate(d.start.time),mainChart.timeScale().timeToCoordinate(d.end.time));if(x1==null||x2==null)continue;FIB.forEach((lvl,i)=>{const price=maxP-(maxP-minP)*lvl,y=candleSeries.priceToCoordinate(price);if(y==null)return;ctx.strokeStyle=FIBC[i];ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=FIBC[i];ctx.font='10px Segoe UI';ctx.fillText(`${(lvl*100).toFixed(1)}% ${price.toFixed(2)}`,x2+4,y+4);});}
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// SYMBOL / TF SWITCH
-// ═══════════════════════════════════════════════════════════
-function buildCtrlBar(){
-  const bar=document.getElementById('ctrlBar');
-  bar.innerHTML=
-    TIMEFRAMES.map(tf=>`<button class="tf-btn${tf.v===curTf?' active':''}" onclick="switchTf('${tf.v}')">${tf.l}</button>`).join('')+
-    '<div class="sep"></div>'+
-    INDICATORS.map(ind=>{
-      const act=activeIndicators.has(ind.id);
-      return `<button class="ind-btn${act?' active':''}" onclick="toggleIndicator('${ind.id}')">${ind.label}</button>`;
-    }).join('');
-}
-function buildSymTabs(){
-  document.getElementById('symTabs').innerHTML=SYMBOLS.map(s=>
-    `<div class="sym-tab${s===curSym?' active':''}" onclick="switchSym('${s}')">${s.replace('USDC','/C').replace('USDT','/T')}</div>`
-  ).join('');
-}
-async function switchSym(sym){
-  curSym=sym; buildSymTabs();
-  await loadKlines(sym,curTf); connectWS();
-}
-async function switchTf(iv){
-  curTf=iv; buildCtrlBar();
-  mainChart.applyOptions({timeScale:{secondsVisible:iv==='1m'}});
-  await loadKlines(curSym,iv); connectWS();
-}
-
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // MATCHING ENGINE
-// ═══════════════════════════════════════════════════════════
-function applySlippage(price,side,size){const i=SLIPPAGE+(size/10)*0.0001;return side==='buy'?price*(1+i):price*(1-i);}
+// ════════════════════════════════════════════════════════
+function asl(price,side,size){const i=SLIPPAGE+(size/10)*0.0001;return side==='buy'?price*(1+i):price*(1-i);}
 function checkOrders(sym,price,high,low){
-  const acc=getAccount(); let changed=false; const toFill=[];
+  const acc=getAccount();let changed=false;const toFill=[];
   for(const o of acc.orders){
-    if(o.symbol!==sym) continue;
-    if(o.type==='limit'){
-      if(o.side==='buy'&&low<=o.price)  toFill.push({o,fp:applySlippage(o.price,'buy',o.size),fee:MAKER_FEE});
-      if(o.side==='sell'&&high>=o.price) toFill.push({o,fp:applySlippage(o.price,'sell',o.size),fee:MAKER_FEE});
-    } else toFill.push({o,fp:applySlippage(price,o.side,o.size),fee:TAKER_FEE});
+    if(o.symbol!==sym)continue;
+    if(o.type==='limit'){if(o.side==='buy'&&low<=o.price)toFill.push({o,fp:asl(o.price,'buy',o.size),fee:MAKER_FEE});if(o.side==='sell'&&high>=o.price)toFill.push({o,fp:asl(o.price,'sell',o.size),fee:MAKER_FEE});}
+    else toFill.push({o,fp:asl(price,o.side,o.size),fee:TAKER_FEE});
     if(o.tp){const tp=o.tp;if((o.side==='buy'&&high>=tp)||(o.side==='sell'&&low<=tp)){const co={...o,side:o.side==='buy'?'sell':'buy',price:tp,type:'limit',tp:null,sl:null};toFill.push({o:co,fp:tp,fee:MAKER_FEE,closeOf:o.id});}}
-    if(o.sl){const sl=o.sl;if((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)){const co={...o,side:o.side==='buy'?'sell':'buy',price:sl,type:'market',tp:null,sl:null};toFill.push({o:co,fp:applySlippage(sl,co.side,o.size),fee:TAKER_FEE,closeOf:o.id});}}
+    if(o.sl){const sl=o.sl;if((o.side==='buy'&&low<=sl)||(o.side==='sell'&&high>=sl)){const co={...o,side:o.side==='buy'?'sell':'buy',price:sl,type:'market',tp:null,sl:null};toFill.push({o:co,fp:asl(sl,co.side,o.size),fee:TAKER_FEE,closeOf:o.id});}}
   }
   for(const{o,fp,fee,closeOf}of toFill){fillOrder(acc,o,fp,fee);if(closeOf)acc.orders=acc.orders.filter(x=>x.id!==closeOf);changed=true;toast(`${o.side==='buy'?'✅买入':'🔴卖出'} ${o.symbol} ${o.size} @ $${fp.toFixed(2)}`);}
   if(changed){saveAccount(acc);if(activeTab==='account')renderAccount();}
 }
-function fillOrder(acc,o,fp,feeRate){
-  const cost=fp*o.size,fee=cost*feeRate,sym=o.symbol;
-  if(o.side==='buy'){
-    acc.balance-=cost+fee;
-    if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'long'};
-    const p=acc.positions[sym];const tot=p.size+o.size;
-    p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='long';
-  } else {
-    if(acc.positions[sym]?.size>0){
-      const p=acc.positions[sym];
-      acc.balance+=fp*o.size-fee+(fp-p.entryPrice)*o.size;
-      p.size-=o.size;if(p.size<0.000001)delete acc.positions[sym];
-    } else {
-      acc.balance-=fee;
-      if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'short'};
-      const p=acc.positions[sym];const tot=p.size+o.size;
-      p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='short';
-    }
-  }
+function fillOrder(acc,o,fp,fr){
+  const cost=fp*o.size,fee=cost*fr,sym=o.symbol;
+  if(o.side==='buy'){acc.balance-=cost+fee;if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'long'};const p=acc.positions[sym];const tot=p.size+o.size;p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='long';}
+  else{if(acc.positions[sym]?.size>0){const p=acc.positions[sym];acc.balance+=fp*o.size-fee+(fp-p.entryPrice)*o.size;p.size-=o.size;if(p.size<1e-6)delete acc.positions[sym];}else{acc.balance-=fee;if(!acc.positions[sym])acc.positions[sym]={size:0,entryPrice:0,side:'short'};const p=acc.positions[sym];const tot=p.size+o.size;p.entryPrice=(p.size*p.entryPrice+o.size*fp)/tot;p.size=tot;p.side='short';}}
   acc.history.push({symbol:sym,side:o.side,size:o.size,fillPrice:fp,fee,time:Date.now()});
   acc.orders=acc.orders.filter(x=>x.id!==o.id);
 }
-
-// ═══════════════════════════════════════════════════════════
-// ACCOUNT
-// ═══════════════════════════════════════════════════════════
-function getAccount(){try{return JSON.parse(localStorage.getItem('account'))||mkAcc();}catch{return mkAcc();}}
-function mkAcc(){return{balance:INITIAL_BALANCE,positions:{},orders:[],history:[]};}
+function getAccount(){try{return JSON.parse(localStorage.getItem('account'))||mk();}catch{return mk();}}
+function mk(){return{balance:INITIAL_BALANCE,positions:{},orders:[],history:[]};}
 function saveAccount(a){localStorage.setItem('account',JSON.stringify(a));}
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // ORDER UI
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 function togglePF(){document.getElementById('priceField').style.display=document.getElementById('oType').value==='market'?'none':'';}
 function placeOrder(side){
-  const type=document.getElementById('oType').value;
-  const price=+document.getElementById('oPrice').value||0;
-  const size=+document.getElementById('oSize').value;
-  const tp=+document.getElementById('oTp').value||null;
-  const sl=+document.getElementById('oSl').value||null;
+  const type=document.getElementById('oType').value,price=+document.getElementById('oPrice').value||0,size=+document.getElementById('oSize').value;
+  const tp=+document.getElementById('oTp').value||null,sl=+document.getElementById('oSl').value||null;
   if(!size||size<=0){toast('请输入数量',1);return;}
   if(type==='limit'&&price<=0){toast('请输入价格',1);return;}
   const acc=getAccount();
   const o={id:Date.now()+Math.random().toString(36).slice(2),symbol:curSym,side,type,price,size,tp,sl,time:Date.now()};
   acc.orders.push(o);
-  if(type==='market'){const cur=prices[curSym];if(cur)fillOrder(acc,o,applySlippage(cur,side,size),TAKER_FEE);}
-  saveAccount(acc);toast(`${side==='buy'?'买单':'卖单'} ✓`);
-  document.getElementById('oSize').value='';
+  if(type==='market'){const cur=prices[curSym];if(cur)fillOrder(acc,o,asl(cur,side,size),TAKER_FEE);}
+  saveAccount(acc);toast(`${side==='buy'?'买单':'卖单'} ✓`);document.getElementById('oSize').value='';
 }
-
-// ═══════════════════════════════════════════════════════════
-// ACCOUNT / HISTORY PANELS
-// ═══════════════════════════════════════════════════════════
 function renderAccount(){
   const acc=getAccount();let pnl=0;
   for(const[sym,pos]of Object.entries(acc.positions)){const p=prices[sym]||0;pnl+=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;}
-  document.getElementById('statGrid').innerHTML=`
-    <div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div>
-    <div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div>
-    <div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div>
-    <div class="stat"><div class="lbl">初始资金</div><div class="val">$${INITIAL_BALANCE.toLocaleString()}</div></div>`;
-  document.getElementById('posDiv').innerHTML=Object.keys(acc.positions).length
-    ?Object.entries(acc.positions).map(([sym,pos])=>{const p=prices[sym]||0;const pnl2=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;return`<div class="pos-row"><b style="color:var(--ac)">${sym}</b><span style="color:var(--mu);margin:0 3px">${pos.side.toUpperCase()}</span>${pos.size.toFixed(4)}@$${pos.entryPrice.toFixed(2)}<span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`;}).join('')
-    :'<div class="empty">暂无持仓</div>';
-  document.getElementById('ordDiv').innerHTML=acc.orders.length
-    ?acc.orders.map(o=>`<div class="ord-row"><div><span style="color:${o.side==='buy'?'var(--gn)':'var(--rd)'}"><b>${o.side==='buy'?'买':'卖'}</b></span><span style="color:var(--mu);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}${o.tp?`<span style="color:var(--gn);font-size:9px"> TP:${o.tp}</span>`:''}${o.sl?`<span style="color:var(--rd);font-size:9px"> SL:${o.sl}</span>`:''}</div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join('')
-    :'<div class="empty">暂无挂单</div>';
+  document.getElementById('statGrid').innerHTML=`<div class="stat"><div class="lbl">可用余额</div><div class="val">$${acc.balance.toFixed(2)}</div></div><div class="stat"><div class="lbl">浮动盈亏</div><div class="val ${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</div></div><div class="stat"><div class="lbl">总权益</div><div class="val">$${(acc.balance+pnl).toFixed(2)}</div></div><div class="stat"><div class="lbl">初始资金</div><div class="val">$100,000</div></div>`;
+  document.getElementById('posDiv').innerHTML=Object.keys(acc.positions).length?Object.entries(acc.positions).map(([sym,pos])=>{const p=prices[sym]||0,pnl2=pos.side==='long'?(p-pos.entryPrice)*pos.size:(pos.entryPrice-p)*pos.size;return`<div class="pos-row"><b style="color:var(--ac)">${sym}</b><span style="color:var(--mu);margin:0 3px">${pos.side.toUpperCase()}</span>${pos.size.toFixed(4)}@$${pos.entryPrice.toFixed(2)}<span class="${pnl2>=0?'pos':'neg'}" style="float:right">${pnl2>=0?'+':''}$${pnl2.toFixed(2)}</span></div>`}).join(''):'<div class="empty">暂无持仓</div>';
+  document.getElementById('ordDiv').innerHTML=acc.orders.length?acc.orders.map(o=>`<div class="ord-row"><div><span style="color:${o.side==='buy'?'var(--gn)':'var(--rd)'}"><b>${o.side==='buy'?'买':'卖'}</b></span><span style="color:var(--mu);margin:0 3px;font-size:10px">${o.symbol}</span>${o.size}@$${o.price}${o.tp?`<span style="color:var(--gn);font-size:9px"> TP:${o.tp}</span>`:''}${o.sl?`<span style="color:var(--rd);font-size:9px"> SL:${o.sl}</span>`:''}</div><button class="xbtn" onclick="cancelOrder('${o.id}')">撤</button></div>`).join(''):'<div class="empty">暂无挂单</div>';
 }
 function cancelOrder(id){const acc=getAccount();acc.orders=acc.orders.filter(o=>o.id!==id);saveAccount(acc);renderAccount();toast('订单已撤销');}
 function resetAccount(){if(!confirm('确认重置？所有数据清空'))return;localStorage.removeItem('account');toast('账户已重置');renderAccount();}
@@ -825,32 +701,19 @@ function renderHistory(){
   if(!acc.history.length){el.innerHTML='<div class="empty">暂无记录</div>';return;}
   el.innerHTML=[...acc.history].reverse().slice(0,50).map(h=>`<div class="hist-row"><span style="color:${h.side==='buy'?'var(--gn)':'var(--rd)'}">${h.side==='buy'?'买':'卖'}</span><span style="color:var(--mu)">${h.symbol}</span><span>${h.size}</span><span>@$${h.fillPrice.toFixed(2)}</span><span style="color:var(--mu);margin-left:auto">${new Date(h.time).toLocaleTimeString('zh')}</span></div>`).join('');
 }
-
-// ═══════════════════════════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════════════════════════
-function switchTab(name,el){
-  activeTab=name;
-  ['order','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  if(name==='account')renderAccount();
-  if(name==='history')renderHistory();
-}
+function switchTab(name,el){activeTab=name;['order','account','history'].forEach(t=>document.getElementById('pane-'+t).style.display=t===name?'':'none');document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');if(name==='account')renderAccount();if(name==='history')renderHistory();}
 let toastTimer;
 function toast(msg,isErr=0){const el=document.getElementById('toast');el.textContent=msg;el.style.background=isErr?'#da3633':'#1f6feb';el.style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.style.display='none',2500);}
 setInterval(()=>{if(activeTab==='account')renderAccount();},3000);
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // BOOT
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 initCharts();
 initCanvas();
-buildSymTabs();
 buildCtrlBar();
-loadKlines(curSym,curTf).then(()=>connectWS());
-// set cursor tool (canvas pointer-events off by default)
 canvas.style.pointerEvents='none';
+loadKlines(curSym,curTfMin).then(()=>connectWS());
 </script>
 </body>
 </html>
